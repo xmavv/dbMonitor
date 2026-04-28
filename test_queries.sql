@@ -43,7 +43,7 @@ UPDATE przedmiot
 SET ects = ects + 1
 WHERE semestr = 3;
 
--- Złożone zestawienie danych (Raport)
+-- Złożony JOIN
 SELECT
     s.numer_indeksu,
     s.nazwisko || ' ' || s.imie AS student_full_name,

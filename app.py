@@ -70,7 +70,7 @@ def api_table_health():
         health = load_table_health(conn)
         cache = load_cache_hit(conn)
         cache_map = {r[0]: {"heap_hit_pct": float(r[3]) if r[3] else None,
-                             "idx_hit_pct": float(r[6]) if r[6] else None}
+                            "idx_hit_pct": float(r[6]) if r[6] else None}
                      for r in cache}
         return _api([
             {
@@ -621,7 +621,6 @@ SPA_HTML = r"""<!DOCTYPE html>
 </head>
 <body>
 
-<!-- Sidebar -->
 <nav id="sidebar">
   <div id="sidebar-logo">
     <div class="logo-text">▶ PG Inspector</div>
@@ -651,7 +650,6 @@ SPA_HTML = r"""<!DOCTYPE html>
   </div>
 </nav>
 
-<!-- Main -->
 <div id="main">
   <div id="topbar">
     <span id="page-title">Top Queries</span>
@@ -659,27 +657,22 @@ SPA_HTML = r"""<!DOCTYPE html>
   </div>
   <div id="content">
 
-    <!-- QUERIES VIEW -->
     <div id="view-queries" class="view active">
       <div id="queries-content"><div class="loader"><div class="spinner"></div>Loading query stats…</div></div>
     </div>
 
-    <!-- TABLE HEALTH VIEW -->
     <div id="view-tables" class="view">
       <div id="tables-content"><div class="loader"><div class="spinner"></div>Loading table health…</div></div>
     </div>
 
-    <!-- DB SIZES VIEW -->
     <div id="view-sizes" class="view">
       <div id="sizes-content"><div class="loader"><div class="spinner"></div>Loading sizes…</div></div>
     </div>
 
-    <!-- INDEXES VIEW -->
     <div id="view-indexes" class="view">
       <div id="indexes-content"><div class="loader"><div class="spinner"></div>Loading indexes…</div></div>
     </div>
 
-    <!-- LOCKS VIEW -->
     <div id="view-locks" class="view">
       <div id="locks-content"><div class="loader"><div class="spinner"></div>Loading locks…</div></div>
     </div>
@@ -687,7 +680,6 @@ SPA_HTML = r"""<!DOCTYPE html>
   </div>
 </div>
 
-<!-- Plan Modal -->
 <div id="plan-modal">
   <div id="plan-box">
     <div id="plan-header">
@@ -779,6 +771,7 @@ async function loadQueries() {
 
   let html = `<div class="card">
     <div class="card-header">⚡ Top Queries by Total Time</div>
+    <div style="overflow-x: auto;">
     <table class="data-table">
     <thead><tr>
       <th>#</th><th>Query</th><th>Calls</th>
@@ -800,7 +793,7 @@ async function loadQueries() {
     </tr>`;
   });
 
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
   el.innerHTML = html;
 }
 
@@ -946,11 +939,15 @@ async function loadTables() {
 
   html += `<div class="card">
     <div class="card-header">Table Health Dashboard</div>
+    <div style="overflow-x: auto;">
     <table class="data-table"><thead><tr>
-      <th>Table</th><th>Size</th>
+      <th>Schema</th><th>Table</th><th>Size</th>
+      <th>Live Tup</th><th>Dead Tup</th>
+      <th>Ins</th><th>Upd</th><th>Del</th>
       <th>Cache Hit</th><th>Idx Cache Hit</th>
       <th>Dead Tup %</th><th>Idx Usage %</th>
-      <th>Seq Scans</th><th>Last Vacuum</th><th>Last Analyze</th>
+      <th>Seq Scans</th><th>Idx Scans</th>
+      <th>Last Vacuum</th><th>Last Analyze</th>
     </tr></thead><tbody>`;
 
   data.forEach(r => {
@@ -959,18 +956,25 @@ async function loadTables() {
     const cacheBad = r.cache_hit_pct != null && r.cache_hit_pct < 90;
     const rowStyle = (deadBad || idxBad || cacheBad) ? 'background:rgba(239,68,68,0.04)' : '';
     html += `<tr style="${rowStyle}">
+      <td style="color:var(--text3)">${escHtml(r.schema)}</td>
       <td style="font-family:var(--mono);font-weight:600">${escHtml(r.table)}</td>
       <td style="font-family:var(--mono)">${r.total_size}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.live_tup)}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.dead_tup)}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.ins)}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.upd)}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.del)}</td>
       <td>${badgeForPct(r.cache_hit_pct)}</td>
       <td>${badgeForPct(r.idx_cache_hit_pct)}</td>
-      <td>${badgeForPct(r.dead_ratio_pct, true)} ${bar(r.dead_ratio_pct, true)}</td>
-      <td>${badgeForPct(r.idx_ratio_pct)} ${bar(r.idx_ratio_pct)}</td>
+      <td>${badgeForPct(r.dead_ratio_pct)}</td>
+      <td>${badgeForPct(r.idx_ratio_pct)}</td>
       <td style="font-family:var(--mono)">${fmtNum(r.seq_scan)}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.idx_scan)}</td>
       <td style="color:var(--text3)">${elapsed(r.last_autovacuum || r.last_vacuum)}</td>
       <td style="color:var(--text3)">${elapsed(r.last_autoanalyze || r.last_analyze)}</td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
   el.innerHTML = html;
 }
 
@@ -1002,7 +1006,7 @@ async function loadSizes() {
     const idxW = (r.indexes_size_bytes / maxBytes * 100).toFixed(1);
     html += `<div class="size-bar-row">
       <div class="size-bar-label">
-        <span class="size-bar-name">${escHtml(r.table)}</span>
+        <span class="size-bar-name"><span style="color:var(--text3)">${escHtml(r.schema)}.</span>${escHtml(r.table)}</span>
         <span class="size-bar-val">
           <span style="color:var(--accent)">data: ${r.table_size}</span>
           &nbsp;+&nbsp;
@@ -1021,12 +1025,14 @@ async function loadSizes() {
 
   html += `<div class="card">
     <div class="card-header">Detailed Breakdown</div>
+    <div style="overflow-x: auto;">
     <table class="data-table"><thead><tr>
-      <th>Table</th><th>Data Size</th><th>Index Size</th><th>Total</th><th>Index Overhead</th>
+      <th>Schema</th><th>Table</th><th>Data Size</th><th>Index Size</th><th>Total</th><th>Index Overhead</th>
     </tr></thead><tbody>`;
   data.forEach(r => {
     const overHigh = r.index_overhead_pct > 60;
     html += `<tr>
+      <td style="color:var(--text3)">${escHtml(r.schema)}</td>
       <td style="font-family:var(--mono);font-weight:600">${escHtml(r.table)}</td>
       <td style="font-family:var(--mono)">${r.table_size}</td>
       <td style="font-family:var(--mono)">${r.indexes_size}</td>
@@ -1034,7 +1040,7 @@ async function loadSizes() {
       <td>${overHigh ? `<span class="badge badge-warn">${r.index_overhead_pct}%</span>` : `<span class="badge badge-ok">${r.index_overhead_pct}%</span>`}</td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
   el.innerHTML = html;
 }
 
@@ -1084,8 +1090,9 @@ async function loadIndexes() {
 
   html += `<div class="card">
     <div class="card-header">Index Usage</div>
+    <div style="overflow-x: auto;">
     <table class="data-table"><thead><tr>
-      <th>Table</th><th>Index</th><th>Scans</th>
+      <th>Schema</th><th>Table</th><th>Index</th><th>Scans</th>
       <th>Tuples Read</th><th>Tuples Fetched</th><th>Size</th><th>Status</th>
     </tr></thead><tbody>`;
 
@@ -1093,6 +1100,7 @@ async function loadIndexes() {
     const isUnused = r.scans === 0;
     const isDupe = r.is_duplicate;
     html += `<tr style="${isUnused?'background:rgba(245,158,11,0.04)':''}">
+      <td style="color:var(--text3)">${escHtml(r.schema)}</td>
       <td style="font-family:var(--mono)">${escHtml(r.table)}</td>
       <td style="font-family:var(--mono);color:${isDupe?'var(--danger)':isUnused?'var(--warn)':'var(--text)'}">${escHtml(r.index)}</td>
       <td style="font-family:var(--mono)">${fmtNum(r.scans)}</td>
@@ -1106,7 +1114,7 @@ async function loadIndexes() {
       </td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
   el.innerHTML = html;
 }
 
@@ -1163,12 +1171,13 @@ async function loadLocks() {
   // Active queries
   html += `<div class="card">
     <div class="card-header">⚙ Active Queries (${data.active.length})</div>
+    <div style="overflow-x: auto;">
     <table class="data-table"><thead><tr>
-      <th>PID</th><th>User</th><th>State</th><th>Wait</th><th>Duration</th><th>Query</th>
+      <th>PID</th><th>User</th><th>App</th><th>Client</th><th>State</th><th>Wait</th><th>Duration</th><th>Query</th>
     </tr></thead><tbody>`;
 
   if (data.active.length === 0) {
-    html += '<tr><td colspan="6" class="empty-state">No active queries</td></tr>';
+    html += '<tr><td colspan="8" class="empty-state">No active queries</td></tr>';
   }
 
   data.active.forEach(r => {
@@ -1176,13 +1185,15 @@ async function loadLocks() {
     html += `<tr>
       <td style="font-family:var(--mono)">${r.pid}</td>
       <td style="font-family:var(--mono)">${escHtml(r.user||'')}</td>
+      <td style="color:var(--text3)">${escHtml(r.app||'')}</td>
+      <td style="font-family:var(--mono)">${escHtml(r.client||'')}</td>
       <td><span class="badge ${r.state==='active'?'badge-ok':r.state?.includes('transaction')?'badge-danger':'badge-warn'}">${r.state}</span></td>
       <td style="font-size:11px;color:var(--text3)">${r.wait_event_type ? `${r.wait_event_type}/${r.wait_event}` : '—'}</td>
       <td style="font-family:var(--mono);color:${durCls}">${r.duration_seconds != null ? r.duration_seconds + 's' : '—'}</td>
       <td><div class="query-cell">${escHtml((r.query||'').substring(0,120))}</div></td>
     </tr>`;
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
   el.innerHTML = html;
 }
 
