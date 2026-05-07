@@ -770,7 +770,7 @@ async function loadQueries() {
   const maxTotal = Math.max(...data.map(r => r.total_time));
 
   let html = `<div class="card">
-    <div class="card-header">⚡ Top Queries by Total Time</div>
+    <div class="card-header">Top Queries by Total Time</div>
     <div style="overflow-x: auto;">
     <table class="data-table">
     <thead><tr>
