@@ -109,45 +109,45 @@ SELECT p.id,
 FROM pracownik p;
 
 -- 6. DANE
-INSERT INTO kierunek (id, nazwa, liczba_studentow, liczba_semestrow)
-VALUES (5, 'Informatyka Techniczna', 554, 7),
-       (6, 'Informatyka Stosowana', 497, 7),
-       (7, 'Telekomunikacja', 512, 7);
+INSERT INTO kierunek (nazwa, liczba_studentow, liczba_semestrow)
+VALUES ('Informatyka Techniczna', 554, 7),
+       ('Informatyka Stosowana', 497, 7),
+       ('Telekomunikacja', 512, 7);
 
 INSERT INTO student (numer_indeksu, imie, nazwisko, data_ur, srednia_ocen, plec, kierunek_id)
 VALUES (123456, 'Jan', 'Kowalski', '1995-05-10', 4.5, 'M', 5),
        (234567, 'Anna', 'Nowak', '1998-09-15', 4.2, 'F', 6),
        (345678, 'Piotr', 'Wiśniewski', '1997-03-25', 3.8, 'M', 7);
 
-INSERT INTO budynek (id, nazwa, adres, rok_budowy, liczba_pieter)
-VALUES (5, 'Technopolis', 'ul. Janiszewskiego 15', 2020, 5),
-       (6, 'C5', 'ul. Janiszewskiego 21', 2007, 3),
-       (7, 'D-21', 'ul. Janiszewskiego 34', 2015, 6);
+INSERT INTO budynek (nazwa, adres, rok_budowy, liczba_pieter)
+VALUES ('Technopolis', 'ul. Janiszewskiego 15', 2020, 5),
+       ('C5', 'ul. Janiszewskiego 21', 2007, 3),
+       ('D-21', 'ul. Janiszewskiego 34', 2015, 6);
 
-INSERT INTO sala (id, numer_sali, pojemnosc, rodzaj, budynek_id)
-VALUES (5, '32', 35, 'Cwiczeniowa', 5),
-       (6, '24', 16, 'Laboratoryjna', 5),
-       (7, '135', 200, 'Wykladowa', 5);
+INSERT INTO sala (numer_sali, pojemnosc, rodzaj, budynek_id)
+VALUES ('32', 35, 'Cwiczeniowa', 5),
+       ( '24', 16, 'Laboratoryjna', 5),
+       ( '135', 200, 'Wykladowa', 5);
 
-INSERT INTO doktorant (id, imie, nazwisko, nr_indeksu, rok_rozpoczecia, kierunek_id)
-VALUES (5, 'Maksymilian', 'Wajda', '272345', 2019, 5),
-       (6, 'Weronika', 'Janda', '290564', 2023, 5),
-       (7, 'Marta', 'Cholubek', '342908', 2022, 5);
+INSERT INTO doktorant (imie, nazwisko, nr_indeksu, rok_rozpoczecia, kierunek_id)
+VALUES ( 'Maksymilian', 'Wajda', '272345', 2019, 5),
+       ( 'Weronika', 'Janda', '290564', 2023, 5),
+       ( 'Marta', 'Cholubek', '342908', 2022, 5);
 
-INSERT INTO przedmiot (id, nazwa, ects)
-VALUES (5, 'Teoria Systemów', 3),
-       (6, 'Bazy danych', 4),
-       (7, 'Architektura komputerów', 5);
+INSERT INTO przedmiot (nazwa, ects)
+VALUES ('Teoria Systemów', 3),
+       ('Bazy danych', 4),
+       ('Architektura komputerów', 5);
 
-INSERT INTO pracownik (id, imie, nazwisko, data_zatrudnienia)
-VALUES (5, 'Mariusz', 'Potylica', '2023-01-01'),
-       (6, 'Weronika', 'Grzyb', '2023-01-01'),
-       (7, 'Albert', 'Wieszcz', '2023-01-01');
+INSERT INTO pracownik (imie, nazwisko, data_zatrudnienia)
+VALUES ('Mariusz', 'Potylica', '2023-01-01'),
+       ('Weronika', 'Grzyb', '2023-01-01'),
+       ('Albert', 'Wieszcz', '2023-01-01');
 
-INSERT INTO zapisy_na_przedmioty (id, student_id, przedmiot_id)
-VALUES (5, 123456, 5),
-       (6, 234567, 6),
-       (7, 345678, 7);
+INSERT INTO zapisy_na_przedmioty (student_id, przedmiot_id)
+VALUES (123456, 5),
+       (234567, 6),
+       (345678, 7);
 
 SELECT setval(pg_get_serial_sequence('budynek', 'id'), coalesce(max(id), 1)) FROM budynek;
 SELECT setval(pg_get_serial_sequence('sala', 'id'), coalesce(max(id), 1)) FROM sala;
@@ -155,7 +155,7 @@ SELECT setval(pg_get_serial_sequence('doktorant', 'id'), coalesce(max(id), 1)) F
 
 -- 7. INDEKSY
 CREATE INDEX idx_student_nazwisko ON student (nazwisko);
-CREATE UNIQUE INDEX idx_kierunek_liczba_studentow ON kierunek (liczba_studentow);
+CREATE INDEX idx_kierunek_liczba_studentow ON kierunek (liczba_studentow);
 
 -- 8. MODYFIKACJE STRUKTURY
 ALTER TABLE przedmiot ADD COLUMN prowadzacy varchar(50);

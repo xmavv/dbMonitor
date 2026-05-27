@@ -183,6 +183,29 @@ def load_locks(conn):
     cur.close()
     return rows
 
+def load_triggers(conn):
+    cur = conn.cursor()
+    cur.execute("""
+                SELECT
+                    nsp.nspname AS schema_name,
+                    rel.relname AS table_name,
+                    tg.tgname AS trigger_name,
+                    CASE
+                        WHEN tg.tgenabled = 'O' THEN 'ENABLED'
+                        WHEN tg.tgenabled = 'D' THEN 'DISABLED'
+                        WHEN tg.tgenabled = 'R' THEN 'REPLICA'
+                        WHEN tg.tgenabled = 'A' THEN 'ALWAYS'
+                        END AS status,
+                    pg_get_triggerdef(tg.oid) AS definition
+                FROM pg_trigger tg
+                         JOIN pg_class rel ON tg.tgrelid = rel.oid
+                         JOIN pg_namespace nsp ON rel.relnamespace = nsp.oid
+                WHERE NOT tg.tgisinternal
+                ORDER BY schema_name, table_name, trigger_name;
+                """)
+    rows = cur.fetchall()
+    cur.close()
+    return rows
 
 def load_active_queries(conn):
     cur = conn.cursor()

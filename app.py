@@ -1,10 +1,12 @@
 import argparse
 import json
-from flask import Flask, request, jsonify
+
+from flask import Flask, request
+
 from db import (
     get_db_url, connect, setup_database, load_stats, load_indexes,
     load_duplicate_indexes, load_table_health, load_cache_hit,
-    load_locks, load_active_queries, load_database_sizes, explain_query
+    load_locks, load_active_queries, load_database_sizes, explain_query, load_triggers
 )
 
 app = Flask(__name__)
@@ -142,6 +144,17 @@ def api_analyze():
     results = explain_query(conn, query)
     return _api(results)
 
+@app.route("/api/triggers")
+def api_triggers():
+    try:
+        data = load_triggers(conn)
+        return _api([
+            {"schema": r[0], "table": r[1], "trigger": r[2],
+             "status": r[3], "definition": r[4]}
+            for r in data
+        ])
+    except Exception as e:
+        return _api({"error": str(e)})
 
 # ── Main SPA shell ────────────────────────────────────────────────────────────
 
@@ -396,13 +409,6 @@ SPA_HTML = r"""<!DOCTYPE html>
   .badge-ok { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
   .badge-info { background: rgba(0,212,255,0.12); color: var(--accent); border: 1px solid rgba(0,212,255,0.25); }
 
-  /* ── Bar ── */
-  .bar-wrap { background: var(--surface2); border-radius: 3px; height: 6px; min-width: 80px; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
-  .bar-ok { background: var(--success); }
-  .bar-warn { background: var(--warn); }
-  .bar-danger { background: var(--danger); }
-
   /* ── Metrics row ── */
   .metrics-grid {
     display: grid;
@@ -645,6 +651,10 @@ SPA_HTML = r"""<!DOCTYPE html>
   <div class="nav-item" onclick="showView('locks')">
     Lock Monitor
   </div>
+  <div class="nav-section">Trgrs</div>
+  <div class="nav-item" onclick="showView('triggers')">
+    Triggers
+  </div>
   <div id="sidebar-footer">
     <button id="refresh-btn" onclick="refreshCurrent()">↺ Refresh</button>
   </div>
@@ -677,6 +687,10 @@ SPA_HTML = r"""<!DOCTYPE html>
       <div id="locks-content"><div class="loader"><div class="spinner"></div>Loading locks…</div></div>
     </div>
 
+    <div id="view-triggers" class="view">
+      <div id="triggers-content"><div class="loader"><div class="spinner"></div>Ładowanie triggerów…</div></div>
+    </div>
+    
   </div>
 </div>
 
@@ -710,7 +724,8 @@ function showView(name) {
   event.currentTarget.classList.add('active');
   document.getElementById('page-title').textContent = {
     queries: 'Top Queries', tables: 'Table Health',
-    sizes: 'Database Sizes', indexes: 'Index Usage', locks: 'Lock Monitor'
+    sizes: 'Database Sizes', indexes: 'Index Usage', locks: 'Lock Monitor',
+    triggers: 'Triggers'
   }[name];
   currentView = name;
   if (!loaded[name]) loadView(name);
@@ -722,11 +737,58 @@ function loadView(name) {
   loaded[name] = true;
   const loaders = {
     queries: loadQueries, tables: loadTables,
-    sizes: loadSizes, indexes: loadIndexes, locks: loadLocks
+    sizes: loadSizes, indexes: loadIndexes, locks: loadLocks,
+    triggers: loadTriggers
   };
   loaders[name]?.();
 }
 
+async function loadTriggers() {
+  const container = document.getElementById('triggers-content');
+  try {
+    const res = await fetch('/api/triggers');
+    const data = await res.json();
+    
+    if (data.error) {
+      container.innerHTML = `<div class="empty-state">Błąd: ${data.error}</div>`;
+      return;
+    }
+    
+    if (!data.length) {
+      container.innerHTML = `<div class="empty-state">No triggers defined in database.</div>`;
+      return;
+    }
+
+    let html = `
+      <div class="card">
+        <div class="card-header">Configured triggers</div>
+        <table class="data-table">
+          <tr>
+            <th>Schemat</th>
+            <th>Tabela</th>
+            <th>Nazwa Triggera</th>
+            <th>Status</th>
+            <th>Definicja (Kod)</th>
+          </tr>`;
+
+    data.forEach(t => {
+      // Używamy istniejących klas CSS z Twojej aplikacji do ładnego formatowania badge'y
+      const statusClass = t.status === 'ENABLED' ? 'badge-ok' : (t.status === 'DISABLED' ? 'badge-danger' : 'badge-warn');
+      html += `<tr>
+        <td>${t.schema}</td>
+        <td><strong>${t.table}</strong></td>
+        <td>${t.trigger}</td>
+        <td><span class="badge ${statusClass}">${t.status}</span></td>
+        <td class="wrap" style="font-size: 11px;">${t.definition}</td>
+      </tr>`;
+    });
+
+    html += `</table></div>`;
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state">Błąd połączenia z API.</div>`;
+  }
+}
 window.addEventListener('load', () => loadView('queries'));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -740,13 +802,6 @@ function badgeForPct(pct, reverse=false) {
   const mid = reverse ? pct < 20 : pct > 80;
   const cls = hi ? 'badge-ok' : mid ? 'badge-warn' : 'badge-danger';
   return `<span class="badge ${cls}">${fmt(pct,1)}%</span>`;
-}
-
-function bar(pct, reverse=false) {
-  const cls = reverse
-    ? (pct < 5 ? 'bar-ok' : pct < 20 ? 'bar-warn' : 'bar-danger')
-    : (pct > 90 ? 'bar-ok' : pct > 70 ? 'bar-warn' : 'bar-danger');
-  return `<div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>`;
 }
 
 function elapsed(iso) {
@@ -775,7 +830,7 @@ async function loadQueries() {
     <table class="data-table">
     <thead><tr>
       <th>#</th><th>Query</th><th>Calls</th>
-      <th>Mean (ms)</th><th>Total (ms)</th><th>Rows</th><th>Cost</th><th>Action</th>
+      <th>Mean (ms)</th><th>Total (ms)</th><th>Rows</th><th>Action</th>
     </tr></thead><tbody>`;
 
   data.forEach((r, i) => {
@@ -788,7 +843,6 @@ async function loadQueries() {
       <td style="font-family:var(--mono)">${fmt(r.mean_time,2)}</td>
       <td style="font-family:var(--mono)">${fmt(r.total_time,0)}</td>
       <td style="font-family:var(--mono)">${fmtNum(r.rows)}</td>
-      <td style="min-width:100px">${bar(pct)}</td>
       <td>${isSelect ? `<button class="btn" onclick="analyzePlan('${escAttr(r.query)}')">Analyze</button>` : ''}</td>
     </tr>`;
   });
