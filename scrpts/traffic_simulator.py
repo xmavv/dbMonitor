@@ -1,4 +1,3 @@
-import os
 import time
 import threading
 import random
@@ -31,7 +30,6 @@ def simulate_background_traffic():
     cur = conn.cursor()
     while True:
         try:
-            # Szybkie selekty i nieznaczące updaty
             cur.execute("SELECT * FROM student_kierunek_v LIMIT 50;")
             cur.execute(f"UPDATE przedmiot SET ects = {random.randint(1,10)} WHERE id = 5;")
             cur.execute("SELECT count(*) FROM zapisy_na_przedmioty;")
@@ -43,7 +41,6 @@ def simulate_row_lock():
     print("\n--- SCENARIUSZ 1: Deadlock / Row-level Lock na studencie (15s) ---")
 
     def blocker():
-        # Pobieramy konkretnego studenta
         run_query("UPDATE student SET srednia_ocen = 5.0 WHERE numer_indeksu = 123456;", sleep_after=15)
 
     def victim():
@@ -77,7 +74,6 @@ def simulate_table_lock():
 if __name__ == "__main__":
     print("Rozpoczęcie symulacji bazy danych.")
 
-    # Odpal ruch w tle na osobnym wątku (działa w nieskończoność jako demon)
     traffic_thread = threading.Thread(target=simulate_background_traffic, daemon=True)
     traffic_thread.start()
 

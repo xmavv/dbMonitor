@@ -20,7 +20,6 @@ def random_string(length=10):
     return ''.join(random.choices(string.ascii_letters, k=length))
 
 def get_next_id(cur, table_name, pk_col="id"):
-    """Pobiera największe ID z tabeli i zwraca wartość o 1 większą"""
     cur.execute(f"SELECT COALESCE(MAX({pk_col}), 0) + 1 FROM {table_name};")
     return cur.fetchone()[0]
 
@@ -64,7 +63,7 @@ def generate_data():
     doktoranci = [(start_id + i, random.choice(imiona), random.choice(nazwiska), f"{random.randint(100000, 999999)}_{i}", random.randint(2018, 2023), random.choice(kierunek_ids)) for i in range(target_count)]
     psycopg2.extras.execute_values(cur, "INSERT INTO doktorant (id, imie, nazwisko, nr_indeksu, rok_rozpoczecia, kierunek_id) VALUES %s", doktoranci)
 
-    # 6. STUDENT (kluczem głównym jest numer_indeksu)
+    # 6. STUDENT
     start_id = get_next_id(cur, "student", "numer_indeksu")
     studenci = [(start_id + i, random.choice(imiona), random.choice(nazwiska), generate_random_date(), round(random.uniform(2.0, 5.5), 1), random.choice(['M', 'F']), random.choice(kierunek_ids)) for i in range(target_count)]
     psycopg2.extras.execute_values(cur, "INSERT INTO student (numer_indeksu, imie, nazwisko, data_ur, srednia_ocen, plec, kierunek_id) VALUES %s", studenci)
@@ -76,14 +75,9 @@ def generate_data():
     sale = [(start_id + i, f"{random.randint(1, 999)}{random.choice(['A', 'B', 'C', ''])}", random.randint(15, 300), random.choice(["Wykładowa", "Laboratoryjna", "Ćwiczeniowa"]), random.choice(budynek_ids)) for i in range(target_count)]
     psycopg2.extras.execute_values(cur, "INSERT INTO sala (id, numer_sali, pojemnosc, rodzaj, budynek_id) VALUES %s", sale)
 
-    # 8. ZAPISY NA PRZEDMIOTY (Tutaj był problem z UniqueViolation)
     start_id = get_next_id(cur, "zapisy_na_przedmioty")
     zapisy = [(start_id + i, random.choice(student_ids), random.choice(przedmiot_ids)) for i in range(target_count)]
     psycopg2.extras.execute_values(cur, "INSERT INTO zapisy_na_przedmioty (id, student_id, przedmiot_id) VALUES %s", zapisy)
-
-    # --- BARDZO WAŻNE: Aktualizacja sekwencji bazy po ręcznym nadaniu ID ---
-    # Jeśli tego nie zrobimy, to po wykonaniu skryptu i próbie dodania rekordu np. przez panel WWW,
-    # baza znowu spróbuje zacząć od starych wartości i zwróci błąd.
 
     tables_with_serial = ["budynek", "sala", "doktorant", "zapisy_na_przedmioty"]
     for tbl in tables_with_serial:

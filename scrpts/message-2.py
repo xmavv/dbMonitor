@@ -4,7 +4,6 @@ import threading
 import psycopg2
 from db import get_db_url
 
-# Pobieranie URL bazy danych w ten sam sposób co apliakcja
 DB_URL = get_db_url(os.getenv("DATABASE_URL")) or "postgresql://postgres:postgres@localhost:5432/mydb"
 
 def run_query(query, sleep_after=0):
