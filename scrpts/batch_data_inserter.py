@@ -30,67 +30,67 @@ def generate_data():
     cur = conn.cursor()
     target_count = 10000
 
-    print("Generowanie i wstawianie danych. Proszę czekać...")
+    print("Generating and inserting data. Please wait...")
 
-    # 1. KIERUNEK
-    start_id = get_next_id(cur, "kierunek")
-    kierunki = [(start_id + i, f"Kierunek_{random_string(5)}_{i}", random.randint(50, 1000), random.choice([6, 7, 8])) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO kierunek (id, nazwa, liczba_studentow, liczba_semestrow) VALUES %s", kierunki)
-    cur.execute("SELECT id FROM kierunek")
-    kierunek_ids = [row[0] for row in cur.fetchall()]
+    # 1. PROGRAM
+    start_id = get_next_id(cur, "program")
+    programs = [(start_id + i, f"Program_{random_string(5)}_{i}", random.randint(50, 1000), random.choice([6, 7, 8])) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO program (id, name, student_count, semester_count) VALUES %s", programs)
+    cur.execute("SELECT id FROM program")
+    program_ids = [row[0] for row in cur.fetchall()]
 
-    # 2. PRZEDMIOT
-    start_id = get_next_id(cur, "przedmiot")
-    przedmioty = [(start_id + i, f"Przedmiot_{random_string(6)}_{i}", random.randint(1, 10), f"Prof. {random_string(5)}", random.randint(1, 8)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO przedmiot (id, nazwa, ects, prowadzacy, semestr) VALUES %s", przedmioty)
-    cur.execute("SELECT id FROM przedmiot")
-    przedmiot_ids = [row[0] for row in cur.fetchall()]
+    # 2. COURSE
+    start_id = get_next_id(cur, "course")
+    courses = [(start_id + i, f"Course_{random_string(6)}_{i}", random.randint(1, 10), f"Prof. {random_string(5)}", random.randint(1, 8)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO course (id, name, ects, lecturer, semester) VALUES %s", courses)
+    cur.execute("SELECT id FROM course")
+    course_ids = [row[0] for row in cur.fetchall()]
 
-    # 3. BUDYNEK
-    start_id = get_next_id(cur, "budynek")
-    budynki = [(start_id + i, f"Budynek_{random_string(4)}", f"Ulica_{random_string(8)} {random.randint(1,200)}", random.randint(1950, 2024), random.randint(1, 15)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO budynek (id, nazwa, adres, rok_budowy, liczba_pieter) VALUES %s", budynki)
-    cur.execute("SELECT id FROM budynek")
-    budynek_ids = [row[0] for row in cur.fetchall()]
+    # 3. BUILDING
+    start_id = get_next_id(cur, "building")
+    buildings = [(start_id + i, f"Building_{random_string(4)}", f"Street_{random_string(8)} {random.randint(1,200)}", random.randint(1950, 2024), random.randint(1, 15)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO building (id, name, address, build_year, floor_count) VALUES %s", buildings)
+    cur.execute("SELECT id FROM building")
+    building_ids = [row[0] for row in cur.fetchall()]
 
-    # 4. PRACOWNIK
-    start_id = get_next_id(cur, "pracownik")
-    imiona = ["Jan", "Anna", "Piotr", "Ewa", "Marek", "Zofia", "Kamil", "Karolina"]
-    nazwiska = ["Kowalski", "Nowak", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski"]
-    pracownicy = [(start_id + i, random.choice(imiona), random.choice(nazwiska), generate_random_date(2000, 2023)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO pracownik (id, imie, nazwisko, data_zatrudnienia) VALUES %s", pracownicy)
+    # 4. EMPLOYEE
+    start_id = get_next_id(cur, "employee")
+    first_names = ["Jan", "Anna", "Piotr", "Ewa", "Marek", "Zofia", "Kamil", "Karolina"]
+    last_names = ["Kowalski", "Nowak", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski"]
+    employees = [(start_id + i, random.choice(first_names), random.choice(last_names), generate_random_date(2000, 2023)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO employee (id, first_name, last_name, hire_date) VALUES %s", employees)
 
-    # 5. DOKTORANT
-    start_id = get_next_id(cur, "doktorant")
-    doktoranci = [(start_id + i, random.choice(imiona), random.choice(nazwiska), f"{random.randint(100000, 999999)}_{i}", random.randint(2018, 2023), random.choice(kierunek_ids)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO doktorant (id, imie, nazwisko, nr_indeksu, rok_rozpoczecia, kierunek_id) VALUES %s", doktoranci)
+    # 5. PHD_STUDENT
+    start_id = get_next_id(cur, "phd_student")
+    phd_students = [(start_id + i, random.choice(first_names), random.choice(last_names), f"{random.randint(100000, 999999)}_{i}", random.randint(2018, 2023), random.choice(program_ids)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO phd_student (id, first_name, last_name, index_number, start_year, program_id) VALUES %s", phd_students)
 
     # 6. STUDENT
-    start_id = get_next_id(cur, "student", "numer_indeksu")
-    studenci = [(start_id + i, random.choice(imiona), random.choice(nazwiska), generate_random_date(), round(random.uniform(2.0, 5.5), 1), random.choice(['M', 'F']), random.choice(kierunek_ids)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO student (numer_indeksu, imie, nazwisko, data_ur, srednia_ocen, plec, kierunek_id) VALUES %s", studenci)
-    cur.execute("SELECT numer_indeksu FROM student")
+    start_id = get_next_id(cur, "student", "index_number")
+    students = [(start_id + i, random.choice(first_names), random.choice(last_names), generate_random_date(), round(random.uniform(2.0, 5.5), 1), random.choice(['M', 'F']), random.choice(program_ids)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO student (index_number, first_name, last_name, birth_date, gpa, gender, program_id) VALUES %s", students)
+    cur.execute("SELECT index_number FROM student")
     student_ids = [row[0] for row in cur.fetchall()]
 
-    # 7. SALA
-    start_id = get_next_id(cur, "sala")
-    sale = [(start_id + i, f"{random.randint(1, 999)}{random.choice(['A', 'B', 'C', ''])}", random.randint(15, 300), random.choice(["Wykładowa", "Laboratoryjna", "Ćwiczeniowa"]), random.choice(budynek_ids)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO sala (id, numer_sali, pojemnosc, rodzaj, budynek_id) VALUES %s", sale)
+    # 7. ROOM
+    start_id = get_next_id(cur, "room")
+    rooms = [(start_id + i, f"{random.randint(1, 999)}{random.choice(['A', 'B', 'C', ''])}", random.randint(15, 300), random.choice(["Wykładowa", "Laboratoryjna", "Ćwiczeniowa"]), random.choice(building_ids)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO room (id, room_number, capacity, type, building_id) VALUES %s", rooms)
 
-    start_id = get_next_id(cur, "zapisy_na_przedmioty")
-    zapisy = [(start_id + i, random.choice(student_ids), random.choice(przedmiot_ids)) for i in range(target_count)]
-    psycopg2.extras.execute_values(cur, "INSERT INTO zapisy_na_przedmioty (id, student_id, przedmiot_id) VALUES %s", zapisy)
+    start_id = get_next_id(cur, "enrollment")
+    enrollments = [(start_id + i, random.choice(student_ids), random.choice(course_ids)) for i in range(target_count)]
+    psycopg2.extras.execute_values(cur, "INSERT INTO enrollment (id, student_id, course_id) VALUES %s", enrollments)
 
-    tables_with_serial = ["budynek", "sala", "doktorant", "zapisy_na_przedmioty"]
+    tables_with_serial = ["building", "room", "phd_student", "enrollment"]
     for tbl in tables_with_serial:
         cur.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE(MAX(id), 1)) FROM {tbl};")
 
-    cur.execute("SELECT setval('student_seq', COALESCE(MAX(numer_indeksu), 1)) FROM student;")
+    cur.execute("SELECT setval('student_seq', COALESCE(MAX(index_number), 1)) FROM student;")
 
     conn.commit()
     cur.close()
     conn.close()
-    print("Zakończono! Wstawiono bezbłędnie tysiące rekordów omijając kolizje.")
+    print("Done! Inserted thousands of records without collisions.")
 
 if __name__ == "__main__":
     generate_data()

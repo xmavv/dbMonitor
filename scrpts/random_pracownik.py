@@ -13,10 +13,10 @@ conn = psycopg2.connect(
 
 cursor = conn.cursor()
 
-imiona = ["Jan", "Anna", "Piotr", "Kasia", "Marek", "Ewa", "Tomasz", "Ola"]
-nazwiska = ["Kowalski", "Nowak", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski"]
+first_names = ["Jan", "Anna", "Piotr", "Kasia", "Marek", "Ewa", "Tomasz", "Ola"]
+last_names = ["Kowalski", "Nowak", "Wiśniewski", "Wójcik", "Kamiński", "Lewandowski"]
 
-def losowa_data(start_year=1990, end_year=2026):
+def random_date(start_year=1990, end_year=2026):
     start = datetime(start_year, 1, 1)
     end = datetime(end_year, 12, 31)
     delta = end - start
@@ -24,34 +24,34 @@ def losowa_data(start_year=1990, end_year=2026):
     # return (start + timedelta(days=random_days)).date()
     return "2022-01-01"
 
-def pobierz_startowe_id():
-    cursor.execute("SELECT COALESCE(MAX(id), 0) FROM pracownik;")
+def get_start_id():
+    cursor.execute("SELECT COALESCE(MAX(id), 0) FROM employee;")
     return cursor.fetchone()[0] + 1
 
-def generuj_pracownikow(liczba=50):
-    start_id = pobierz_startowe_id()
-    dane = []
+def generate_employees(count=50):
+    start_id = get_start_id()
+    data = []
 
-    for i in range(liczba):
-        imie = random.choice(imiona)
-        nazwisko = random.choice(nazwiska)
-        data = losowa_data()
-        dane.append((start_id + i, imie, nazwisko, data))
+    for i in range(count):
+        first_name = random.choice(first_names)
+        last_name = random.choice(last_names)
+        date = random_date()
+        data.append((start_id + i, first_name, last_name, date))
 
-    return dane
+    return data
 
-def insert_batch(dane):
+def insert_batch(data):
     query = """
-            INSERT INTO pracownik (id, imie, nazwisko, data_zatrudnienia)
+            INSERT INTO employee (id, first_name, last_name, hire_date)
             VALUES (%s, %s, %s, %s) \
             """
-    cursor.executemany(query, dane)
+    cursor.executemany(query, data)
     conn.commit()
 
 if __name__ == "__main__":
-    dane = generuj_pracownikow(1000)
-    insert_batch(dane)
-    print("Dane dodane")
+    data = generate_employees(1000)
+    insert_batch(data)
+    print("Data inserted")
 
     cursor.close()
     conn.close()

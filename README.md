@@ -205,7 +205,7 @@ Wszystkie endpointy zwracają dane w formacie **JSON**. W przypadku błędu zwra
 Treść żądania:
 
 ```json
-{ "query": "SELECT * FROM student WHERE nazwisko = 'Kowalski'" }
+{ "query": "SELECT * FROM student WHERE last_name = 'Kowalski'" }
 ```
 
 > Ze względów bezpieczeństwa analizowane mogą być **wyłącznie** zapytania zaczynające się od `SELECT`. Endpoint obsługuje zapytania z parametrami (`$1`, `$2`, …) — przygotowuje je jako `PREPARE` i podstawia wartości zastępcze odpowiednie dla typów argumentów.
@@ -251,24 +251,24 @@ Aplikacja monitoruje przykładową bazę o tematyce **uczelnianej**. Schemat (`s
 
 | Tabela | Opis |
 |--------|------|
-| `kierunek` | Kierunki studiów |
-| `przedmiot` | Przedmioty (z kolumnami `prowadzacy`, `semestr`) |
-| `budynek` | Budynki |
-| `sala` | Sale (powiązane z budynkiem) |
-| `pracownik` | Pracownicy |
-| `doktorant` | Doktoranci (powiązani z kierunkiem) |
+| `program` | Kierunki studiów |
+| `course` | Przedmioty (z kolumnami `lecturer`, `semester`) |
+| `building` | Budynki |
+| `room` | Sale (powiązane z budynkiem) |
+| `employee` | Pracownicy |
+| `phd_student` | Doktoranci (powiązani z kierunkiem) |
 | `student` | Studenci (z ograniczeniami CHECK na ocenę i płeć) |
-| `zapisy_na_przedmioty` | Tabela łącząca studentów z przedmiotami |
-| `audyt_pracownik` | Tabela audytu wypełniana przez trigger |
+| `enrollment` | Tabela łącząca studentów z przedmiotami |
+| `employee_audit` | Tabela audytu wypełniana przez trigger |
 
-**Widoki:** `student_kierunek_v`, `pracownik_v`
+**Widoki:** `student_program_v`, `employee_v`
 **Sekwencje:** `student_seq`, `sec_seq`
 
 **Triggery** (`scrpts/triggers_and_idx.sql`):
-- `pracownik_audyt_trigger` — loguje operacje INSERT/UPDATE/DELETE na tabeli `pracownik` do tabeli `audyt_pracownik`.
-- `student_kierunek_trigger` — automatycznie aktualizuje `liczba_studentow` w tabeli `kierunek` przy dodaniu/usunięciu studenta.
+- `employee_audit_trigger` — loguje operacje INSERT/UPDATE/DELETE na tabeli `employee` do tabeli `employee_audit`.
+- `student_program_trigger` — automatycznie aktualizuje `student_count` w tabeli `program` przy dodaniu/usunięciu studenta.
 
-Skrypt `triggers_and_idx.sql` celowo tworzy też **indeksy nieużywane** (`idx_student_plec_nieuzywany`, `idx_doktorant_rok_nieuzywany`) — do demonstracji modułu *Index Usage*.
+Skrypt `triggers_and_idx.sql` celowo tworzy też **indeksy nieużywane** (`idx_student_gender_unused`, `idx_phd_student_year_unused`) — do demonstracji modułu *Index Usage*.
 
 ---
 
