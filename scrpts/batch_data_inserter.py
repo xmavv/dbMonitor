@@ -1,14 +1,16 @@
 import random
+import os
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
 import string
 
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "mydb",
-    "user": "postgres",
-    "password": "postgres"
+    "host": os.getenv("POSTGRES_HOST", "localhost"),
+    "port": os.getenv("POSTGRES_PORT", "5432"),
+    "database": os.getenv("POSTGRES_DB", "mydb"),
+    "user": os.getenv("POSTGRES_USER", "postgres"),
+    "password": os.getenv("POSTGRES_PASSWORD", "postgres")
 }
 
 def generate_random_date(start_year=1980, end_year=2003):

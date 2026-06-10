@@ -27,6 +27,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      DBMONITOR_LOG_INTERVAL_SECONDS: 5
     ports:
       - "5001:5001"
     depends_on:

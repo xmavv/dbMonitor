@@ -1,12 +1,14 @@
 import random
+import os
 from datetime import datetime, timedelta
 import psycopg2
 
 conn = psycopg2.connect(
-    host="localhost",
-    database="mydb",
-    user="postgres",
-    password="postgres"
+    host=os.getenv("POSTGRES_HOST", "localhost"),
+    port=os.getenv("POSTGRES_PORT", "5432"),
+    database=os.getenv("POSTGRES_DB", "mydb"),
+    user=os.getenv("POSTGRES_USER", "postgres"),
+    password=os.getenv("POSTGRES_PASSWORD", "postgres")
 )
 
 cursor = conn.cursor()

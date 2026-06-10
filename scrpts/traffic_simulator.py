@@ -1,9 +1,22 @@
 import time
 import threading
 import random
+import os
 import psycopg2
 
-DB_URL = "postgresql://postgres:postgres@localhost:5432/mydb"
+def get_db_url():
+    if os.getenv("DATABASE_URL"):
+        return os.getenv("DATABASE_URL")
+
+    user = os.getenv("POSTGRES_USER", "postgres")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    db = os.getenv("POSTGRES_DB", "mydb")
+    return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+
+
+DB_URL = get_db_url()
 
 def run_query(query, sleep_after=0):
     conn = psycopg2.connect(DB_URL)
