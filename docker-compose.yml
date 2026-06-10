@@ -10,6 +10,8 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
@@ -17,6 +19,8 @@ services:
 
   db-inspector:
     build: .
+    volumes:
+      - .:/app
     environment:
       POSTGRES_DB: mydb
       POSTGRES_USER: postgres
@@ -24,7 +28,10 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
     ports:
-      - "5000:5000"
+      - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
+
+#volumes:
+#  pgdata:
