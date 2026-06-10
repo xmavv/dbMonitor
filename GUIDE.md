@@ -1,236 +1,210 @@
-# PG Inspector — Przewodnik użytkownika
+# PG Inspector — User Guide
 
-Ten przewodnik tłumaczy **jak korzystać** z PG Inspectora w codziennej pracy z bazą danych — bez wchodzenia w szczegóły techniczne. Jeśli szukasz informacji o instalacji, architekturze czy API, zajrzyj do pliku [`README.md`](README.md).
+This guide explains **how to use** PG Inspector in day-to-day database work. For installation, architecture, and API details see [`README.md`](README.md).
 
-> **Dla kogo jest to narzędzie?**
-> Wyobraź sobie, że masz dużą, działającą bazę PostgreSQL — sklep internetowy, system uczelni, aplikację z tysiącami użytkowników. Coś działa wolno, ktoś zgłasza „zawieszki", a Ty chcesz wiedzieć **co dokładnie** dzieje się w bazie: które zapytania są kosztowne, gdzie brakuje indeksów, czy coś się nie zablokowało. PG Inspector pokazuje to wszystko na jednym ekranie, w czytelnej formie — nie musisz pisać zapytań do katalogów systemowych PostgreSQL.
-
----
-
-## Spis treści
-
-- [Pierwsze kroki](#pierwsze-kroki)
-- [Jak wygląda panel](#jak-wygląda-panel)
-- [Co możesz sprawdzić — przegląd ekranów](#co-możesz-sprawdzić--przegląd-ekranów)
-  - [Top Queries — najcięższe zapytania](#1-top-queries--najcięższe-zapytania)
-  - [Table Health — kondycja tabel](#2-table-health--kondycja-tabel)
-  - [DB Sizes — co zajmuje miejsce](#3-db-sizes--co-zajmuje-miejsce)
-  - [Buffer Cache — co siedzi w pamięci](#4-buffer-cache--co-siedzi-w-pamięci)
-  - [Index Usage — które indeksy się przydają](#5-index-usage--które-indeksy-się-przydają)
-  - [Lock Monitor — kto kogo blokuje](#6-lock-monitor--kto-kogo-blokuje)
-  - [Triggers — wyzwalacze w bazie](#7-triggers--wyzwalacze-w-bazie)
-  - [Extensions — zainstalowane rozszerzenia](#8-extensions--zainstalowane-rozszerzenia)
-- [Analiza planu zapytania (EXPLAIN)](#analiza-planu-zapytania-explain)
-- [Automatyczne wykrywanie problemów (dziennik anomalii)](#automatyczne-wykrywanie-problemów-dziennik-anomalii)
-- [Typowe scenariusze — od czego zacząć](#typowe-scenariusze--od-czego-zacząć)
-- [Wskazówki i częste pytania](#wskazówki-i-częste-pytania)
+> **Full interactive documentation:** [http://localhost:5001/docs](http://localhost:5001/docs) — searchable, with color examples and step-by-step fixes.
 
 ---
 
-## Pierwsze kroki
+## Table of contents
 
-1. **Uruchom aplikację** (najprościej przez Docker — szczegóły w `README.md`):
+- [First steps](#first-steps)
+- [Dashboard layout](#dashboard-layout)
+- [Color legend (quick reference)](#color-legend-quick-reference)
+- [Panels overview](#panels-overview)
+- [Query plan analysis (EXPLAIN)](#query-plan-analysis-explain)
+- [Anomaly log (background monitoring)](#anomaly-log-background-monitoring)
+- [Common scenarios](#common-scenarios)
+- [Tips & FAQ](#tips--faq)
+
+---
+
+## First steps
+
+1. Start the stack (Docker recommended — see `README.md`):
+
    ```bash
    docker compose up
    ```
-2. **Otwórz przeglądarkę** i wejdź na adres:
-   ```
-   http://localhost:5001
-   ```
-3. **Gotowe.** Panel automatycznie łączy się z bazą i przy pierwszym uruchomieniu sam włącza potrzebne rozszerzenie do zbierania statystyk (`pg_stat_statements`). Od tej chwili wszystko, co widzisz, to dane „na żywo" z Twojej bazy.
 
-> 💡 Jeśli chcesz podłączyć się do **własnej, istniejącej bazy**, podaj jej adres przez zmienną środowiskową `DATABASE_URL` (lub parametr `--db-url`). Sposób konfiguracji opisuje `README.md`.
+2. Open the dashboard: [http://localhost:5001](http://localhost:5001)
 
----
+3. Open docs: [http://localhost:5001/docs](http://localhost:5001/docs)
 
-## Jak wygląda panel
+4. Click **↺ Refresh** on any panel to load the latest data.
 
-Panel jest podzielony na trzy obszary:
-
-```
-┌──────────────┬────────────────────────────────────────────┐
-│              │  Nazwa ekranu                         ● live │  ← górny pasek
-│  MENU        ├────────────────────────────────────────────┤
-│  (po lewej)  │                                            │
-│              │   Tabele, wykresy i karty z danymi         │  ← główny obszar
-│  • Top Q.    │                                            │
-│  • Tabele    │                                            │
-│  • ...       │                                            │
-│              │                                            │
-│  ↺ Refresh   │                                            │
-└──────────────┴────────────────────────────────────────────┘
-```
-
-- **Menu po lewej** — przełączasz się między ekranami jednym kliknięciem.
-- **Zielona kropka** w prawym górnym rogu oznacza, że połączenie z bazą działa.
-- **Przycisk `↺ Refresh`** (na dole menu) odświeża dane na aktualnie otwartym ekranie. Dane **nie** odświeżają się same — klikasz, gdy chcesz zobaczyć najnowszy stan.
+On first run the app enables `pg_stat_statements` and sets up a read-only monitoring user when privileges allow.
 
 ---
 
-## Co możesz sprawdzić — przegląd ekranów
+## Dashboard layout
 
-Poniżej każdy ekran opisany jest według schematu: **co pokazuje**, **na co zwrócić uwagę** i **co z tym zrobić**.
-
-### 1. Top Queries — najcięższe zapytania
-
-**Co pokazuje:** ranking zapytań, które najbardziej obciążają bazę. Dla każdego widzisz: ile razy zostało wykonane, ile trwało średnio, ile czasu pochłonęło łącznie i ile wierszy zwróciło.
-
-**Na co zwrócić uwagę:**
-- Zapytania z **dużym całkowitym czasem** — to one realnie spowalniają system (nawet jeśli pojedyncze wykonanie jest szybkie, ale powtarza się tysiące razy).
-- Zapytania z **wysokim średnim czasem** — pojedynczo wolne, kandydaci do optymalizacji.
-
-**Co z tym zrobić:** kliknij treść zapytania, aby przeanalizować jego plan wykonania (patrz [Analiza planu zapytania](#analiza-planu-zapytania-explain)) i sprawdzić, czy pomógłby indeks.
-
-> To najlepszy ekran na start, gdy „baza działa wolno, ale nie wiem dlaczego".
-
-### 2. Table Health — kondycja tabel
-
-**Co pokazuje:** stan „zdrowia" każdej tabeli:
-- **żywe vs. martwe krotki** — martwe krotki (dead tuples) to pozostałości po `UPDATE`/`DELETE`, które zajmują miejsce, dopóki nie posprząta ich `VACUUM`,
-- **skany sekwencyjne vs. indeksowe** — czy baza musi przeglądać całą tabelę, czy korzysta z indeksów,
-- **statystyki INSERT / UPDATE / DELETE**,
-- **kiedy ostatnio wykonano VACUUM i ANALYZE**,
-- **skuteczność cache** dla tabeli.
-
-**Na co zwrócić uwagę:**
-- Wysoki **procent martwych krotek** → tabela jest „rozdęta" (bloat), warto rozważyć `VACUUM`.
-- Dużo **skanów sekwencyjnych** na dużej tabeli → prawdopodobnie brakuje indeksu.
-- Dawno (lub nigdy) niewykonany **ANALYZE** → planer może podejmować złe decyzje.
-
-**Co z tym zrobić:** zaplanuj `VACUUM`/`ANALYZE` dla problematycznych tabel, albo dodaj indeksy tam, gdzie dominują skany sekwencyjne.
-
-### 3. DB Sizes — co zajmuje miejsce
-
-**Co pokazuje:** rozmiar każdej tabeli wraz z paskiem pokazującym, ile zajmują **same dane**, a ile **indeksy**. Widać też udział procentowy indeksów w rozmiarze tabeli.
-
-**Na co zwrócić uwagę:**
-- Tabele, które urosły nieproporcjonalnie duże.
-- Tabele, w których **indeksy zajmują więcej niż same dane** — to sygnał, że indeksów może być za dużo (lub są zbędne).
-
-**Co z tym zrobić:** połącz tę wiedzę z ekranem **Index Usage**, żeby zdecydować, które indeksy można usunąć.
-
-### 4. Buffer Cache — co siedzi w pamięci
-
-**Co pokazuje:** które tabele zajmują najwięcej **pamięci podręcznej** serwera (buforów). To pamięć, z której PostgreSQL czyta najszybciej.
-
-**Na co zwrócić uwagę:**
-- Czy w cache siedzą tabele, których faktycznie często używasz — to dobrze.
-- Czy cache zajmują tabele, których prawie nie ruszasz — może to oznaczać nieefektywne wykorzystanie pamięci.
-
-**Co z tym zrobić:** to ekran bardziej diagnostyczny/edukacyjny — pomaga zrozumieć, jak baza gospodaruje pamięcią i dlaczego niektóre zapytania są błyskawiczne, a inne wolne (bo muszą sięgać na dysk).
-
-### 5. Index Usage — które indeksy się przydają
-
-**Co pokazuje:** listę wszystkich indeksów i to, jak często są używane (liczba skanów). Narzędzie automatycznie oznacza:
-- **indeksy nieużywane** — istnieją, ale nikt z nich nie korzysta,
-- **indeksy zduplikowane** — kilka indeksów robi praktycznie to samo.
-
-**Na co zwrócić uwagę:**
-- Indeksy z **zerową lub znikomą liczbą skanów**, zwłaszcza duże — kosztują przy każdym zapisie, a nic nie dają.
-- Oznaczone **duplikaty** — niepotrzebnie spowalniają zapisy i zajmują miejsce.
-
-**Co z tym zrobić:** rozważ usunięcie nieużywanych/zduplikowanych indeksów. Mniej indeksów = szybsze `INSERT`/`UPDATE` i mniejsza baza.
-
-### 6. Lock Monitor — kto kogo blokuje
-
-**Co pokazuje:** dwie rzeczy:
-- **Blokady (locki)** — graficznie, w stylu „zapytanie A czeka na zapytanie B", wraz z czasem oczekiwania,
-- **Aktywne zapytania** — co aktualnie wykonuje się w bazie i jak długo.
-
-**Na co zwrócić uwagę:**
-- Każdy widoczny **lock** z długim czasem oczekiwania — to klasyczna przyczyna „zawieszania się" aplikacji.
-- Zapytania działające **bardzo długo** — mogły się zaciąć lub blokują innych.
-
-**Co z tym zrobić:** zidentyfikuj zapytanie blokujące (jego PID i treść), a następnie zdecyduj, czy je zakończyć / zoptymalizować transakcję, która trzyma blokadę zbyt długo.
-
-> To pierwszy ekran, na który warto zajrzeć, gdy użytkownicy zgłaszają nagłe „przestoje".
-
-### 7. Triggers — wyzwalacze w bazie
-
-**Co pokazuje:** listę wszystkich wyzwalaczy (triggerów) zdefiniowanych w bazie — na której tabeli działają, czy są włączone oraz ich pełną definicję.
-
-**Na co zwrócić uwagę:**
-- Triggery, o których nie wiedziałeś — często to one „po cichu" wykonują dodatkową pracę przy zapisach i potrafią spowalniać operacje.
-- Status (włączony / wyłączony).
-
-**Co z tym zrobić:** jeśli zapisy do jakiejś tabeli są wolne, sprawdź, czy nie wisi na niej kosztowny trigger.
-
-### 8. Extensions — zainstalowane rozszerzenia
-
-**Co pokazuje:** listę rozszerzeń PostgreSQL zainstalowanych w bazie wraz z ich wersją i schematem (np. `pg_stat_statements`, `pg_buffercache`).
-
-**Na co zwrócić uwagę:** czy zainstalowane są rozszerzenia, których oczekujesz (np. do zbierania statystyk). To głównie ekran informacyjny.
+- **Left sidebar** — switch between views
+- **Green dot** (top right) — database connection is alive
+- **Docs** link — opens the documentation site
+- **↺ Refresh** — reloads the current view (panels do not auto-refresh)
 
 ---
 
-## Analiza planu zapytania (EXPLAIN)
+## Color legend (quick reference)
 
-To jedna z najpotężniejszych funkcji. Pozwala zobaczyć, **jak dokładnie** PostgreSQL wykona dane zapytanie `SELECT` — krok po kroku.
+PG Inspector uses **green → yellow → red** badges consistently. Full details: [/docs/color-legend](/docs/color-legend).
 
-**Jak użyć:**
-1. Przejdź na ekran **Top Queries** i kliknij treść interesującego Cię zapytania (albo wskaż zapytanie, które chcesz przeanalizować).
-2. Otworzy się okno z planem wykonania. Masz w nim trzy zakładki:
-   - **Tree View** — plan w formie czytelnego drzewa: które operacje (skany, złączenia, sortowania) są wykonywane i w jakiej kolejności. Kosztowne lub podejrzane kroki są podświetlone.
-   - **With Indexes** — plan, gdy baza może korzystać z indeksów (stan normalny).
-   - **Without Indexes** — plan z **wyłączonymi** indeksami. Dzięki temu na własne oczy zobaczysz, jak bardzo (lub jak mało) dany indeks pomaga.
+| Signal | Meaning | Typical action |
+|--------|---------|----------------|
+| <span style="color:#22c55e">Green</span> | Healthy at current thresholds | Monitor; no immediate action |
+| <span style="color:#f59e0b">Yellow</span> | Worth investigating | Plan optimization before it worsens |
+| <span style="color:#ef4444">Red</span> | Likely user-visible problem | Act soon — see panel-specific steps below |
 
-**Po co to robić:** porównując oba warianty, jednoznacznie ocenisz, czy indeks ma sens — zamiast zgadywać. Widać, gdzie powstaje wąskie gardło (np. kosztowny skan sekwencyjny dużej tabeli lub drogie złączenie).
+**Percentage badges (normal — higher is better):** green ≥ 95%, yellow 80–95%, red < 80%  
+**Dead tuple ratio (reversed — lower is better):** green ≤ 5%, yellow 5–20%, red > 20%
 
-> ⚠️ Analizować można tylko zapytania `SELECT` — narzędzie celowo nie pozwala uruchamiać `UPDATE`/`DELETE` itp., żeby nie zmodyfikować danych.
+**Table Health summary cards:**
+- **Avg Cache Hit** — red when ≤ 80%
+- **Bloated Tables** — red when any table has dead ratio > 10%
+- **Seq Scan Heavy** — yellow when tables have seq scans > 100 and idx ratio < 50%
 
----
+**Index Usage:** red **Unused** (0 scans), yellow **Duplicate**
 
-## Automatyczne wykrywanie problemów (dziennik anomalii)
-
-Oprócz ekranów, które oglądasz „na żądanie", PG Inspector **w tle, automatycznie** monitoruje bazę i zapisuje wykryte problemy do pliku-dziennika. Działa to nieprzerwanie od momentu uruchomienia aplikacji — nie musisz nic klikać.
-
-**Co potrafi wykryć (przykłady):**
-
-| Rodzaj zdarzenia | Co oznacza |
-|------------------|------------|
-| **Zablokowane zapytanie** | Jakieś zapytanie czeka zbyt długo, bo zablokowało je inne. |
-| **Długo trwające zapytanie** | Zapytanie działa dłużej niż ustalony próg (może się zaciąć). |
-| **Martwe krotki** | Tabela jest mocno „rozdęta" i wymaga `VACUUM`. |
-| **Niska skuteczność cache** | Tabela lub jej indeksy zbyt często czytane są z dysku, a nie z pamięci. |
-| **Zduplikowane indeksy** | Wykryto nadmiarowe indeksy. |
-| **Nieużywany duży indeks** | Duży indeks, z którego nikt nie korzysta. |
-| **Wysoki narzut indeksów** | Indeksy zajmują nieproporcjonalnie dużo miejsca względem danych. |
-
-**Gdzie to znaleźć:** zdarzenia trafiają do pliku `logs/db_anomalies.jsonl` (każda linia to jedno zdarzenie z datą, poziomem ważności i opisem). Możesz go przeglądać, archiwizować albo podpiąć pod własny system alertów.
-
-**Co można dostroić (bez znajomości kodu):** wszystkie progi i częstotliwość sprawdzania ustawia się przez zmienne środowiskowe — np.:
-- jak często sprawdzać bazę (`DBMONITOR_LOG_INTERVAL_SECONDS`),
-- po ilu sekundach uznać zapytanie za „za długie" (`DBMONITOR_LONG_QUERY_SECONDS`),
-- po ilu sekundach reagować na blokadę (`DBMONITOR_LOCK_WAIT_SECONDS`),
-- jaki poziom ważności zapisywać (`DBMONITOR_LOG_MIN_SEVERITY`).
-
-Pełną listę ustawień znajdziesz w `README.md`. Dzięki temu możesz dopasować czułość monitoringu do swojej bazy — inaczej ustawisz progi dla małej aplikacji, inaczej dla dużego systemu produkcyjnego.
+**Lock Monitor:** red lock cards = active blocking; green “No blocking locks” = healthy
 
 ---
 
-## Typowe scenariusze — od czego zacząć
+## Panels overview
 
-**„Aplikacja działa wolno, ale nie wiem dlaczego"**
-→ Zacznij od **Top Queries** (znajdź kosztowne zapytania) → kliknij je i otwórz **plan wykonania** → porównaj wariant z indeksami i bez → ewentualnie sprawdź **Table Health**, czy nie brakuje indeksu lub czy tabela nie jest rozdęta.
+Each panel: **what it shows**, **what colors mean**, **what to do**.
 
-**„Coś się zawiesiło, użytkownicy nie mogą zapisać danych"**
-→ Wejdź na **Lock Monitor**. Sprawdź, które zapytanie blokuje pozostałe i jak długo. Tam znajdziesz „winowajcę".
+### Top Queries
 
-**„Baza zajmuje za dużo miejsca"**
-→ Otwórz **DB Sizes** (które tabele/indeksy urosły) → przejdź do **Index Usage** i usuń nieużywane oraz zduplikowane indeksy.
+**Shows:** Most expensive queries from `pg_stat_statements` (calls, mean/total time, rows).
 
-**„Zapisy do tabeli są podejrzanie wolne"**
-→ Sprawdź **Index Usage** (czy nie ma za dużo indeksów do aktualizacji) oraz **Triggers** (czy nie wisi kosztowny wyzwalacz).
+**Watch for:** High **total time** (frequent queries) or high **mean time** (slow individual runs).
 
-**„Chcę być uprzedzany o problemach, zanim zauważą je użytkownicy"**
-→ Skonfiguruj **dziennik anomalii** i monitoruj plik `logs/db_anomalies.jsonl`.
+**Red flags:** Queries dominating total time with high mean — click **Analyze** for EXPLAIN.
+
+**Fix:** Optimize query, add indexes, reduce calls at app layer. See [/docs/top-queries](/docs/top-queries).
 
 ---
 
-## Wskazówki i częste pytania
+### Table Health
 
-- **Czy narzędzie może coś zepsuć w bazie?** Nie zmienia Twoich danych. Czyta statystyki, a analiza planów obsługuje wyłącznie zapytania `SELECT`. Przy pierwszym starcie zakłada jedynie pomocnicze rozszerzenia/konto techniczne do monitoringu.
-- **Dane się nie odświeżają same** — kliknij `↺ Refresh`, gdy chcesz zobaczyć aktualny stan. Wyjątkiem jest dziennik anomalii, który działa w tle bez przerwy.
-- **Niektóre ekrany są puste** — to normalne, jeśli baza jest świeża albo nic się akurat nie dzieje (np. brak blokad). Statystyki gromadzą się z czasem, w miarę ruchu w bazie.
-- **Chcę przetestować narzędzie na „żywym" ruchu** — w katalogu `scrpts/` znajdują się skrypty generujące sztuczny ruch, blokady i anomalie. Pozwalają zobaczyć, jak panel reaguje na realne sytuacje (szczegóły w `README.md`).
-- **Gdzie znajdę szczegóły techniczne (instalacja, API, konfiguracja)?** W pliku [`README.md`](README.md).
+**Shows:** Live/dead tuples, scan ratios, INSERT/UPDATE/DELETE stats, VACUUM/ANALYZE dates, cache hit per table.
+
+| Metric | Red means | Fix |
+|--------|-----------|-----|
+| Dead % badge | Bloat > 20% | `VACUUM ANALYZE schema.table` |
+| Cache hit badge | < 80% hits | Indexes, memory tuning, reduce seq scans |
+| Seq scan heavy (summary) | Large tables scanned without indexes | Add index, run ANALYZE |
+
+See [/docs/table-health](/docs/table-health).
+
+---
+
+### DB Sizes
+
+**Shows:** Table vs index disk usage with stacked bars (cyan = data, purple = indexes).
+
+**Watch for:** Index bar larger than data bar — too many indexes.
+
+**Fix:** Cross-check Index Usage, drop unused/duplicate indexes. See [/docs/db-sizes](/docs/db-sizes).
+
+---
+
+### Index Usage
+
+**Shows:** Index scan counts; flags **Unused** (0 scans) and **Duplicate** indexes.
+
+**Red Unused:** Index costs writes but never helps reads — drop after verification.
+
+**Yellow Duplicate:** Keep one index, drop redundant copies.
+
+**Fix:** `DROP INDEX CONCURRENTLY idx_name;` See [/docs/index-usage](/docs/index-usage).
+
+---
+
+### Lock Monitor
+
+**Shows:** Blocking lock chains and long-running active queries.
+
+**Red lock cards:** Session A blocks session B — classic “app frozen” cause.
+
+**Fix steps:**
+1. Note blocking PID and query text
+2. `SELECT pg_cancel_backend(pid);` if safe
+3. Fix long transactions / missing indexes in app
+
+See [/docs/lock-monitor](/docs/lock-monitor).
+
+---
+
+### Triggers
+
+**Shows:** All triggers with ENABLED/DISABLED status and full definition.
+
+**Watch for:** Unexpected triggers on hot tables — extra work on every write.
+
+**Fix:** Review trigger body, disable only for testing, optimize or batch audit logic. See [/docs/triggers](/docs/triggers).
+
+---
+
+### Extensions
+
+**Shows:** Installed PostgreSQL extensions (informational).
+
+**Watch for:** Missing `pg_stat_statements` when Top Queries is empty.
+
+See [/docs/extensions](/docs/extensions).
+
+---
+
+## Query plan analysis (EXPLAIN)
+
+From **Top Queries** → **Analyze** on any `SELECT`:
+
+| Tab | Purpose |
+|-----|---------|
+| Tree View | Interactive plan; red/yellow nodes = high planner cost |
+| With Indexes | Normal plan |
+| Without Indexes | Baseline without index scans — compare impact |
+
+Tree node colors: yellow cost > 1000, red cost > 10000.
+
+See [/docs/explain](/docs/explain).
+
+---
+
+## Anomaly log (background monitoring)
+
+PG Inspector continuously scans the database and writes events to `logs/db_anomalies.jsonl`.
+
+**Detects:** blocked queries, long-running queries, dead tuples, low cache hit, duplicate/unused indexes, high index overhead.
+
+**Tune via env vars:** `DBMONITOR_LOG_INTERVAL_SECONDS`, `DBMONITOR_LONG_QUERY_SECONDS`, `DBMONITOR_LOCK_WAIT_SECONDS`, `DBMONITOR_LOG_MIN_SEVERITY`, and others — see [/docs/configuration](/docs/configuration).
+
+**Test:** `python scrpts/simulate_anomalies.py`
+
+See [/docs/anomaly-log](/docs/anomaly-log).
+
+---
+
+## Common scenarios
+
+| Symptom | Start here | Then |
+|---------|------------|------|
+| App slow, no obvious block | Top Queries | Analyze → Table Health |
+| Users can't save / hangs | Lock Monitor | Cancel blocker, fix transactions |
+| Disk too large | DB Sizes | Index Usage → drop dead indexes |
+| Slow writes to one table | Index Usage + Triggers | Drop indexes, review triggers |
+| Proactive alerts | Anomaly log config | Ship `db_anomalies.jsonl` to alerts |
+
+Full walkthroughs: [/docs/scenarios](/docs/scenarios).
+
+---
+
+## Tips & FAQ
+
+- **Can it break my database?** No data changes — reads stats only; EXPLAIN allows SELECT only.
+- **Data doesn't auto-refresh** — click ↺ Refresh (except background anomaly log).
+- **Empty panels** — normal on fresh DBs or when nothing is happening (e.g. no locks).
+- **Test with synthetic load** — scripts in `scrpts/` (see `README.md`).
+- **Technical details** — `README.md` and [/docs/api](/docs/api).

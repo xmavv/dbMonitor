@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} — PG Inspector Docs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/docs.css') }}">
+</head>
+<body>
+
+<nav id="docs-sidebar">
+    <div id="docs-logo">
+        <a href="/docs" class="logo-text">▶ PG Inspector</a>
+        <div class="logo-sub">Documentation</div>
+    </div>
+
+    {% for section in nav_sections %}
+    <div class="docs-nav-section">{{ section.name }}</div>
+    {% for item in section.pages %}
+    <a href="{{ item.url }}" class="docs-nav-item{% if item.slug == current_slug %} active{% endif %}">{{ item.title }}</a>
+    {% endfor %}
+    {% endfor %}
+
+    <div id="docs-sidebar-footer">
+        <a href="/" class="dashboard-link">← Dashboard</a>
+    </div>
+</nav>
+
+<div id="docs-main">
+    <div id="docs-topbar">
+        <span id="docs-page-title">{{ page.title }}</span>
+        <div id="docs-search-wrap">
+            <span id="docs-search-icon">⌕</span>
+            <input type="search" id="docs-search" placeholder="Search documentation…" autocomplete="off">
+            <div id="docs-search-results"></div>
+        </div>
+    </div>
+    <div id="docs-content-wrap">
+        <article class="doc-content">
+            {{ content_html|safe }}
+        </article>
+    </div>
+</div>
+
+<script>window.DOCS_SEARCH_INDEX = {{ search_index_json|safe }};</script>
+<script src="{{ url_for('static', filename='js/docs.js') }}"></script>
+</body>
+</html>

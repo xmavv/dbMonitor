@@ -3,7 +3,9 @@ import datetime
 import json
 import os
 import threading
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, abort
+
+from docs_renderer import render_page, get_nav_sections, search_index_json
 
 from db import (
     get_db_url, connect, setup_database, load_stats, load_indexes,
@@ -305,6 +307,33 @@ def index():
     if db_error:
         return f"<h1 style='color:red'>DB ERROR</h1><pre>{db_error}</pre>"
     return render_template("index.html")
+
+
+def _render_docs(slug):
+    rendered = render_page(slug)
+    if rendered is None:
+        abort(404)
+    page = rendered["page"]
+    return render_template(
+        "docs/page.html",
+        page=page,
+        page_title=page["title"],
+        current_slug=page["slug"],
+        content_html=rendered["html"],
+        nav_sections=get_nav_sections(),
+        search_index_json=search_index_json(),
+    )
+
+
+@app.route("/docs")
+@app.route("/docs/")
+def docs_index():
+    return _render_docs(None)
+
+
+@app.route("/docs/<slug>")
+def docs_page(slug):
+    return _render_docs(slug)
 
 def start(cli_db_url=None):
     global conn, db_error, setup_messages, stats_data

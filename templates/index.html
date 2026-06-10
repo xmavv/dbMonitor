@@ -143,8 +143,25 @@
             border-radius: 50%;
             background: var(--success);
             box-shadow: 0 0 6px var(--success);
-            margin-left: auto;
         }
+        #topbar-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        #docs-link {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text2);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            padding: 4px 10px;
+            border: 1px solid var(--border2);
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+        #docs-link:hover { border-color: var(--accent); color: var(--accent); }
 
         #content {
             flex: 1;
@@ -470,7 +487,10 @@
 <div id="main">
     <div id="topbar">
         <span id="page-title">Top Queries</span>
-        <span id="status-dot"></span>
+        <div id="topbar-actions">
+            <a href="/docs" id="docs-link">Docs</a>
+            <span id="status-dot"></span>
+        </div>
     </div>
     <div id="content">
 
