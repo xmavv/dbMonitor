@@ -25,11 +25,12 @@ def setup_database(conn):
     conn.autocommit = True
     cur = conn.cursor()
     messages = []
-    try:
-        cur.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
-        messages.append("pg_stat_statements extension OK")
-    except Exception as e:
-        messages.append(f"Cannot create extension: {e}")
+    for ext in ("pg_stat_statements", "pg_buffercache"):
+        try:
+            cur.execute(f"CREATE EXTENSION IF NOT EXISTS {ext};")
+            messages.append(f"{ext} extension OK")
+        except Exception as e:
+            messages.append(f"Cannot create extension {ext}: {e}")
     try:
         cur.execute("DO $$ BEGIN CREATE USER inspector WITH PASSWORD 'inspector'; EXCEPTION WHEN duplicate_object THEN NULL; END $$;")
         messages.append("User inspector OK")
@@ -203,6 +204,41 @@ def load_triggers(conn):
                 WHERE NOT tg.tgisinternal
                 ORDER BY schema_name, table_name, trigger_name;
                 """)
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+def load_extensions(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            e.extname,
+            e.extversion,
+            n.nspname AS schema_name
+        FROM pg_extension e
+        JOIN pg_namespace n ON e.extnamespace = n.oid
+        ORDER BY e.extname;
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    return rows
+
+def load_buffercache(conn):
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            c.relname AS table_name,
+            count(*) AS buffers,
+            pg_size_pretty(count(*) * 8192) AS cached_size,
+            round(100.0 * count(*) / NULLIF((SELECT setting::bigint FROM pg_settings WHERE name = 'shared_buffers'), 0), 2) AS pct_of_cache
+        FROM pg_buffercache b
+        JOIN pg_class c ON b.relfilenode = pg_relation_filenode(c.oid)
+        JOIN pg_namespace n ON c.relnamespace = n.oid
+        WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+        GROUP BY c.relname
+        ORDER BY buffers DESC
+        LIMIT 20;
+    """)
     rows = cur.fetchall()
     cur.close()
     return rows

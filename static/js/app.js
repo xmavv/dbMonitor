@@ -11,7 +11,7 @@ function showView(name) {
     document.getElementById('page-title').textContent = {
         queries: 'Top Queries', tables: 'Table Health',
         sizes: 'Database Sizes', indexes: 'Index Usage', locks: 'Lock Monitor',
-        triggers: 'Triggers'
+        triggers: 'Triggers', cache: 'Buffer Cache', extensions: 'Extensions'
     }[name];
     currentView = name;
     if (!loaded[name]) loadView(name);
@@ -24,7 +24,7 @@ function loadView(name) {
     const loaders = {
         queries: loadQueries, tables: loadTables,
         sizes: loadSizes, indexes: loadIndexes, locks: loadLocks,
-        triggers: loadTriggers
+        triggers: loadTriggers, cache: loadCache, extensions: loadExtensions
     };
     loaders[name]?.();
 }
@@ -428,6 +428,70 @@ async function loadLocks() {
       </tr>`;
         });
     }
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+}
+
+async function loadCache() {
+    const el = $('cache-content');
+    el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading…</div>';
+    const res = await fetch('/api/cache');
+    const data = await res.json();
+    if (data.error) { el.innerHTML = `<pre style="color:var(--danger)">${data.error}</pre>`; return; }
+
+    if (!data.length) {
+        el.innerHTML = `<div class="empty-state">No relations currently in the buffer cache.</div>`;
+        return;
+    }
+
+    const maxBuffers = Math.max(...data.map(r => r.buffers));
+
+    let html = `<div class="card">
+    <div class="card-header">Buffer Cache Usage (pg_buffercache)</div>
+    <table class="data-table"><thead><tr>
+      <th>Table</th><th>Buffers</th><th>Cached Size</th>
+      <th>% of shared_buffers</th><th></th>
+    </tr></thead><tbody>`;
+
+    data.forEach(r => {
+        const pct = (r.buffers / maxBuffers * 100).toFixed(1);
+        html += `<tr>
+      <td style="font-weight:600;color:var(--accent)">${r.table}</td>
+      <td style="font-family:var(--mono)">${fmtNum(r.buffers)}</td>
+      <td style="font-family:var(--mono)">${r.cached_size}</td>
+      <td>${badgeForPct(r.pct_of_cache)}</td>
+      <td style="width:160px"><div class="size-bar-full"><div class="size-bar-data" style="width:${pct}%"></div></div></td>
+    </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+}
+
+async function loadExtensions() {
+    const el = $('extensions-content');
+    el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading…</div>';
+    const res = await fetch('/api/extensions');
+    const data = await res.json();
+    if (data.error) { el.innerHTML = `<pre style="color:var(--danger)">${data.error}</pre>`; return; }
+
+    if (!data.length) {
+        el.innerHTML = `<div class="empty-state">No extensions installed.</div>`;
+        return;
+    }
+
+    let html = `<div class="card">
+    <div class="card-header">Installed Extensions</div>
+    <table class="data-table"><thead><tr>
+      <th>Name</th><th>Version</th><th>Schema</th>
+    </tr></thead><tbody>`;
+
+    data.forEach(r => {
+        html += `<tr>
+      <td style="font-weight:600;color:var(--accent)">${escHtml(r.name)}</td>
+      <td style="font-family:var(--mono)">${escHtml(r.version)}</td>
+      <td style="font-family:var(--mono)">${escHtml(r.schema)}</td>
+    </tr>`;
+    });
     html += '</tbody></table></div>';
     el.innerHTML = html;
 }

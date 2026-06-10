@@ -443,6 +443,9 @@
     <div class="nav-item" onclick="showView('sizes')">
         DB Sizes
     </div>
+    <div class="nav-item" onclick="showView('cache')">
+        Buffer Cache
+    </div>
     <div class="nav-section">Indexes</div>
     <div class="nav-item" onclick="showView('indexes')">
         Index Usage
@@ -454,6 +457,10 @@
     <div class="nav-section">Trgrs</div>
     <div class="nav-item" onclick="showView('triggers')">
         Triggers
+    </div>
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showView('extensions')">
+        Extensions
     </div>
     <div id="sidebar-footer">
         <button id="refresh-btn" onclick="refreshCurrent()">↺ Refresh</button>
@@ -489,6 +496,14 @@
 
         <div id="view-triggers" class="view">
             <div id="triggers-content"><div class="loader"><div class="spinner"></div>Ładowanie triggerów…</div></div>
+        </div>
+
+        <div id="view-cache" class="view">
+            <div id="cache-content"><div class="loader"><div class="spinner"></div>Loading buffer cache…</div></div>
+        </div>
+
+        <div id="view-extensions" class="view">
+            <div id="extensions-content"><div class="loader"><div class="spinner"></div>Loading extensions…</div></div>
         </div>
 
     </div>

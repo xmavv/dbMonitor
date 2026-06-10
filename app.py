@@ -5,7 +5,8 @@ from flask import Flask, request, render_template
 from db import (
     get_db_url, connect, setup_database, load_stats, load_indexes,
     load_duplicate_indexes, load_table_health, load_cache_hit,
-    load_locks, load_active_queries, load_database_sizes, explain_query, load_triggers
+    load_locks, load_active_queries, load_database_sizes, explain_query, load_triggers,
+    load_extensions, load_buffercache
 )
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -150,6 +151,31 @@ def api_triggers():
         return _api([
             {"schema": r[0], "table": r[1], "trigger": r[2],
              "status": r[3], "definition": r[4]}
+            for r in data
+        ])
+    except Exception as e:
+        return _api({"error": str(e)})
+
+
+@app.route("/api/extensions")
+def api_extensions():
+    try:
+        data = load_extensions(conn)
+        return _api([
+            {"name": r[0], "version": r[1], "schema": r[2]}
+            for r in data
+        ])
+    except Exception as e:
+        return _api({"error": str(e)})
+
+
+@app.route("/api/cache")
+def api_cache():
+    try:
+        data = load_buffercache(conn)
+        return _api([
+            {"table": r[0], "buffers": r[1], "cached_size": r[2],
+             "pct_of_cache": float(r[3]) if r[3] is not None else None}
             for r in data
         ])
     except Exception as e:
