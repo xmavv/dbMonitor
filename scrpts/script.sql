@@ -26,14 +26,14 @@ CREATE SEQUENCE sec_seq
 
 -- 3. TABELE PODSTAWOWE
 CREATE TABLE kierunek (
-                          id                integer PRIMARY KEY,
+                          id                serial PRIMARY KEY,
                           nazwa             varchar(100) NOT NULL,
                           liczba_studentow  integer,
                           liczba_semestrow  integer
 );
 
 CREATE TABLE przedmiot (
-                           id                integer PRIMARY KEY,
+                           id                serial PRIMARY KEY,
                            nazwa             varchar(100) NOT NULL,
                            ects              integer
 );
@@ -47,7 +47,7 @@ CREATE TABLE budynek (
 );
 
 CREATE TABLE pracownik (
-                           id                integer PRIMARY KEY,
+                           id                serial PRIMARY KEY,
                            imie              varchar(50),
                            nazwisko          varchar(50),
                            data_zatrudnienia date
@@ -115,9 +115,9 @@ VALUES ('Informatyka Techniczna', 554, 7),
        ('Telekomunikacja', 512, 7);
 
 INSERT INTO student (numer_indeksu, imie, nazwisko, data_ur, srednia_ocen, plec, kierunek_id)
-VALUES (123456, 'Jan', 'Kowalski', '1995-05-10', 4.5, 'M', 5),
-       (234567, 'Anna', 'Nowak', '1998-09-15', 4.2, 'F', 6),
-       (345678, 'Piotr', 'Wiśniewski', '1997-03-25', 3.8, 'M', 7);
+VALUES (123456, 'Jan', 'Kowalski', '1995-05-10', 4.5, 'M', 1),
+       (234567, 'Anna', 'Nowak', '1998-09-15', 4.2, 'F', 2),
+       (345678, 'Piotr', 'Wiśniewski', '1997-03-25', 3.8, 'M', 3);
 
 INSERT INTO budynek (nazwa, adres, rok_budowy, liczba_pieter)
 VALUES ('Technopolis', 'ul. Janiszewskiego 15', 2020, 5),
@@ -125,14 +125,14 @@ VALUES ('Technopolis', 'ul. Janiszewskiego 15', 2020, 5),
        ('D-21', 'ul. Janiszewskiego 34', 2015, 6);
 
 INSERT INTO sala (numer_sali, pojemnosc, rodzaj, budynek_id)
-VALUES ('32', 35, 'Cwiczeniowa', 5),
-       ( '24', 16, 'Laboratoryjna', 5),
-       ( '135', 200, 'Wykladowa', 5);
+VALUES ('32', 35, 'Cwiczeniowa', 1),
+       ( '24', 16, 'Laboratoryjna', 1),
+       ( '135', 200, 'Wykladowa', 1);
 
 INSERT INTO doktorant (imie, nazwisko, nr_indeksu, rok_rozpoczecia, kierunek_id)
-VALUES ( 'Maksymilian', 'Wajda', '272345', 2019, 5),
-       ( 'Weronika', 'Janda', '290564', 2023, 5),
-       ( 'Marta', 'Cholubek', '342908', 2022, 5);
+VALUES ( 'Maksymilian', 'Wajda', '272345', 2019, 1),
+       ( 'Weronika', 'Janda', '290564', 2023, 1),
+       ( 'Marta', 'Cholubek', '342908', 2022, 1);
 
 INSERT INTO przedmiot (nazwa, ects)
 VALUES ('Teoria Systemów', 3),
@@ -145,9 +145,9 @@ VALUES ('Mariusz', 'Potylica', '2023-01-01'),
        ('Albert', 'Wieszcz', '2023-01-01');
 
 INSERT INTO zapisy_na_przedmioty (student_id, przedmiot_id)
-VALUES (123456, 5),
-       (234567, 6),
-       (345678, 7);
+VALUES (123456, 1),
+       (234567, 2),
+       (345678, 3);
 
 SELECT setval(pg_get_serial_sequence('budynek', 'id'), coalesce(max(id), 1)) FROM budynek;
 SELECT setval(pg_get_serial_sequence('sala', 'id'), coalesce(max(id), 1)) FROM sala;

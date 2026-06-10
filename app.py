@@ -1,12 +1,15 @@
+import argparse
+import datetime
 import json
-
+import os
+import threading
 from flask import Flask, request, render_template
 
 from db import (
     get_db_url, connect, setup_database, load_stats, load_indexes,
     load_duplicate_indexes, load_table_health, load_cache_hit,
     load_locks, load_active_queries, load_database_sizes, explain_query, load_triggers,
-    load_extensions, load_buffercache
+    load_extensions, load_buffercache, collect_anomaly_events
 )
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -15,6 +18,8 @@ conn = None
 db_error = None
 setup_messages = []
 stats_data = []
+log_thread = None
+log_stop_event = threading.Event()
 
 def _json_serial(obj):
     import datetime
@@ -25,6 +30,119 @@ def _json_serial(obj):
 
 def _api(data):
     return json.dumps(data, default=_json_serial), 200, {"Content-Type": "application/json"}
+
+
+def _int_env(name, default):
+    try:
+        return int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _float_env(name, default):
+    try:
+        return float(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _anomaly_thresholds():
+    return {
+        "long_query_seconds": _int_env("DBMONITOR_LONG_QUERY_SECONDS", 30),
+        "lock_wait_seconds": _int_env("DBMONITOR_LOCK_WAIT_SECONDS", 2),
+        "dead_tuple_ratio_pct": _float_env("DBMONITOR_DEAD_TUPLE_RATIO_PCT", 20),
+        "min_dead_tuples": _int_env("DBMONITOR_MIN_DEAD_TUPLES", 100),
+        "low_cache_hit_pct": _float_env("DBMONITOR_LOW_CACHE_HIT_PCT", 90),
+        "min_cache_reads": _int_env("DBMONITOR_MIN_CACHE_READS", 100),
+        "unused_index_min_bytes": _int_env("DBMONITOR_UNUSED_INDEX_MIN_BYTES", 10 * 1024 * 1024),
+        "high_index_overhead_pct": _float_env("DBMONITOR_HIGH_INDEX_OVERHEAD_PCT", 50),
+    }
+
+
+SEVERITY_LEVELS = {
+    "debug": 10,
+    "info": 20,
+    "warning": 30,
+    "error": 40,
+    "critical": 50,
+}
+
+
+def _severity_value(severity):
+    return SEVERITY_LEVELS.get(str(severity).lower(), SEVERITY_LEVELS["info"])
+
+
+def _event_fingerprint(event):
+    return json.dumps({
+        "type": event.get("type"),
+        "severity": event.get("severity"),
+        "message": event.get("message"),
+        "details": event.get("details", {}),
+    }, default=_json_serial, sort_keys=True, ensure_ascii=False)
+
+
+def _should_log_event(event, min_severity, last_logged_at, now, repeat_seconds):
+    if _severity_value(event.get("severity")) < min_severity:
+        return False
+
+    fingerprint = _event_fingerprint(event)
+    previous = last_logged_at.get(fingerprint)
+    if previous is not None and (now - previous).total_seconds() < repeat_seconds:
+        return False
+
+    last_logged_at[fingerprint] = now
+    return True
+
+
+def _write_anomaly_log_entry(log_path, payload):
+    log_dir = os.path.dirname(log_path)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    with open(log_path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(payload, default=_json_serial, ensure_ascii=False) + "\n")
+
+
+def _run_anomaly_logger(db_url):
+    interval = max(1, _int_env("DBMONITOR_LOG_INTERVAL_SECONDS", 60))
+    log_path = os.getenv("DBMONITOR_ANOMALY_LOG_FILE", "logs/db_anomalies.jsonl")
+    thresholds = _anomaly_thresholds()
+    min_severity = _severity_value(os.getenv("DBMONITOR_LOG_MIN_SEVERITY", "warning"))
+    repeat_seconds = max(interval, _int_env("DBMONITOR_LOG_REPEAT_SECONDS", 300))
+    last_logged_at = {}
+
+    while not log_stop_event.is_set():
+        now = datetime.datetime.now(datetime.timezone.utc)
+        timestamp = now.isoformat()
+        sample_conn = None
+        try:
+            sample_conn = connect(db_url)
+            events = collect_anomaly_events(sample_conn, thresholds)
+            for event in events:
+                if not _should_log_event(event, min_severity, last_logged_at, now, repeat_seconds):
+                    continue
+                event["timestamp"] = timestamp
+                _write_anomaly_log_entry(log_path, event)
+        except Exception as e:
+            _write_anomaly_log_entry(log_path, {
+                "timestamp": timestamp,
+                "type": "monitoring_error",
+                "severity": "error",
+                "message": str(e),
+                "details": {},
+            })
+        finally:
+            if sample_conn:
+                sample_conn.close()
+        log_stop_event.wait(interval)
+
+
+def _start_anomaly_logger(db_url):
+    global log_thread
+    if log_thread and log_thread.is_alive():
+        return
+    log_stop_event.clear()
+    log_thread = threading.Thread(target=_run_anomaly_logger, args=(db_url,), daemon=True)
+    log_thread.start()
 
 
 @app.route("/api/stats")
@@ -198,9 +316,13 @@ def start(cli_db_url=None):
         conn = connect(db_url)
         setup_messages = setup_database(conn)
         stats_data = load_stats(conn)
+        _start_anomaly_logger(db_url)
     except Exception as e:
         db_error = str(e)
 
 if __name__ == "__main__":
-    start()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--db-url")
+    args = parser.parse_args()
+    start(args.db_url)
     app.run(host="0.0.0.0", port=5001, debug=False)

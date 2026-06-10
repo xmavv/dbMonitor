@@ -2,9 +2,20 @@ import os
 import time
 import threading
 import psycopg2
-from db import get_db_url
 
-DB_URL = get_db_url(os.getenv("DATABASE_URL")) or "postgresql://postgres:postgres@localhost:5432/mydb"
+def get_db_url(cli_db_url=None):
+    if cli_db_url:
+        return cli_db_url
+    user = os.getenv("POSTGRES_USER")
+    password = os.getenv("POSTGRES_PASSWORD")
+    host = os.getenv("POSTGRES_HOST", "localhost")
+    port = os.getenv("POSTGRES_PORT", "5432")
+    db = os.getenv("POSTGRES_DB")
+    if user and password and db:
+        return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    return None
+
+DB_URL = get_db_url()
 
 def run_query(query, sleep_after=0):
     """Pomocnicza funkcja do uruchamiania zapytań z opcjonalnym usypianiem trzymając transakcję"""

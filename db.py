@@ -162,11 +162,11 @@ def load_locks(conn):
     cur = conn.cursor()
     cur.execute("""
         SELECT
-            bl.pid AS blocked_pid,
+            ba.pid AS blocked_pid,
             ba.usename AS blocked_user,
             ba.query AS blocked_query,
             ba.query_start AS blocked_query_start,
-            kl.pid AS blocking_pid,
+            ka.pid AS blocking_pid,
             ka.usename AS blocking_user,
             ka.query AS blocking_query,
             ka.query_start AS blocking_query_start,
@@ -175,8 +175,7 @@ def load_locks(conn):
             extract(epoch FROM (now() - ba.query_start))::int AS wait_seconds
         FROM pg_catalog.pg_locks bl
         JOIN pg_catalog.pg_stat_activity ba ON bl.pid = ba.pid
-        JOIN pg_catalog.pg_locks kl ON kl.transactionid = bl.transactionid AND kl.pid != bl.pid
-        JOIN pg_catalog.pg_stat_activity ka ON kl.pid = ka.pid
+        JOIN pg_catalog.pg_stat_activity ka ON ka.pid = ANY(pg_blocking_pids(ba.pid))
         WHERE NOT bl.granted
         ORDER BY wait_seconds DESC;
     """)
@@ -289,6 +288,163 @@ def load_database_sizes(conn):
     rows = cur.fetchall()
     cur.close()
     return rows
+
+
+def collect_anomaly_events(conn, thresholds=None):
+    thresholds = thresholds or {}
+    long_query_seconds = int(thresholds.get("long_query_seconds", 30))
+    lock_wait_seconds = int(thresholds.get("lock_wait_seconds", 5))
+    dead_tuple_ratio_pct = float(thresholds.get("dead_tuple_ratio_pct", 20))
+    min_dead_tuples = int(thresholds.get("min_dead_tuples", 100))
+    low_cache_hit_pct = float(thresholds.get("low_cache_hit_pct", 90))
+    min_cache_reads = int(thresholds.get("min_cache_reads", 100))
+    unused_index_min_bytes = int(thresholds.get("unused_index_min_bytes", 10 * 1024 * 1024))
+    high_index_overhead_pct = float(thresholds.get("high_index_overhead_pct", 50))
+
+    events = []
+
+    for row in load_locks(conn):
+        print(f"Processing time : {row[10]}")
+        if row[10] >= lock_wait_seconds:
+            events.append({
+                "type": "blocked_query",
+                "severity": "critical" if row[10] >= 5 else "warning",
+                "message": f"Query PID {row[0]} is blocked by PID {row[4]} for {row[10]}s",
+                "details": {
+                    "blocked_pid": row[0],
+                    "blocked_user": row[1],
+                    "blocked_query": row[2],
+                    "blocking_pid": row[4],
+                    "blocking_user": row[5],
+                    "blocking_query": row[6],
+                    "locktype": row[8],
+                    "relation": str(row[9]) if row[9] else None,
+                    "wait_seconds": row[10],
+                },
+            })
+
+    for row in load_active_queries(conn):
+        duration = row[8] or 0
+        if duration >= long_query_seconds:
+            events.append({
+                "type": "long_running_query",
+                "severity": "critical" if duration >= 1 else "warning",
+                "message": f"Query PID {row[0]} has been running for {duration}s",
+                "details": {
+                    "pid": row[0],
+                    "user": row[1],
+                    "application": row[2],
+                    "state": row[3],
+                    "wait_event_type": row[4],
+                    "wait_event": row[5],
+                    "query": row[6],
+                    "query_start": row[7],
+                    "duration_seconds": duration,
+                    "client": str(row[9]) if row[9] else None,
+                },
+            })
+
+    for row in load_table_health(conn):
+        dead_ratio = float(row[4])
+        if dead_ratio >= dead_tuple_ratio_pct and row[3] >= min_dead_tuples:
+            events.append({
+                "type": "dead_tuples",
+                "severity": "warning",
+                "message": f"Table {row[0]}.{row[1]} has {dead_ratio}% dead tuples",
+                "details": {
+                    "schema": row[0],
+                    "table": row[1],
+                    "live_tuples": row[2],
+                    "dead_tuples": row[3],
+                    "dead_ratio_pct": dead_ratio,
+                    "last_vacuum": row[11],
+                    "last_autovacuum": row[12],
+                    "last_analyze": row[13],
+                    "last_autoanalyze": row[14],
+                    "total_size": row[15],
+                    "total_size_bytes": row[16],
+                },
+            })
+
+    for row in load_cache_hit(conn):
+        heap_reads = row[1] or 0
+        heap_hit_pct = float(row[3]) if row[3] is not None else None
+        idx_reads = row[4] or 0
+        idx_hit_pct = float(row[6]) if row[6] is not None else None
+        if heap_hit_pct is not None and heap_reads >= min_cache_reads and heap_hit_pct < low_cache_hit_pct:
+            events.append({
+                "type": "low_table_cache_hit",
+                "severity": "warning",
+                "message": f"Table {row[0]} heap cache hit is {heap_hit_pct}%",
+                "details": {
+                    "table": row[0],
+                    "heap_blocks_read": heap_reads,
+                    "heap_blocks_hit": row[2],
+                    "cache_hit_pct": heap_hit_pct,
+                },
+            })
+        if idx_hit_pct is not None and idx_reads >= min_cache_reads and idx_hit_pct < low_cache_hit_pct:
+            events.append({
+                "type": "low_index_cache_hit",
+                "severity": "warning",
+                "message": f"Table {row[0]} index cache hit is {idx_hit_pct}%",
+                "details": {
+                    "table": row[0],
+                    "index_blocks_read": idx_reads,
+                    "index_blocks_hit": row[5],
+                    "index_cache_hit_pct": idx_hit_pct,
+                },
+            })
+
+    for row in load_duplicate_indexes(conn):
+        events.append({
+            "type": "duplicate_indexes",
+            "severity": "warning",
+            "message": f"Table {row[0]} has duplicate indexes",
+            "details": {
+                "table": str(row[0]),
+                "indexes": row[1],
+                "sizes": row[2],
+                "size_bytes": row[4],
+            },
+        })
+
+    for row in load_indexes(conn):
+        if row[3] == 0 and row[7] >= unused_index_min_bytes:
+            events.append({
+                "type": "unused_large_index",
+                "severity": "info",
+                "message": f"Index {row[2]} on {row[0]}.{row[1]} has no scans",
+                "details": {
+                    "schema": row[0],
+                    "table": row[1],
+                    "index": row[2],
+                    "scans": row[3],
+                    "size": row[6],
+                    "size_bytes": row[7],
+                },
+            })
+
+    for row in load_database_sizes(conn):
+        if float(row[8]) >= high_index_overhead_pct:
+            events.append({
+                "type": "high_index_overhead",
+                "severity": "info",
+                "message": f"Table {row[0]}.{row[1]} has {float(row[8])}% index overhead",
+                "details": {
+                    "schema": row[0],
+                    "table": row[1],
+                    "table_size": row[2],
+                    "table_size_bytes": row[3],
+                    "indexes_size": row[4],
+                    "indexes_size_bytes": row[5],
+                    "total_size": row[6],
+                    "total_size_bytes": row[7],
+                    "index_overhead_pct": float(row[8]),
+                },
+            })
+
+    return events
 
 
 TYPE_DEFAULTS = {
