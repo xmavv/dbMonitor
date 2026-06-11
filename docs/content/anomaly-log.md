@@ -4,6 +4,14 @@ PG Inspector runs a **background monitor** from app startup. It periodically sca
 
 **Log file:** `logs/db_anomalies.jsonl` (configurable)
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_table_health.py</code> and/or <code>python scripts/demo_locks.py --duration 45</code> while the app is running<br>
+<b>Check:</b> <code>logs/db_anomalies.jsonl</code> (not a dashboard panel)<br>
+<b>Look for:</b> JSON entries <code>dead_tuples</code>, <code>duplicate_indexes</code>, <code>blocked_query</code>, <code>unused_large_index</code><br>
+<b>Docs search:</b> <code>anomaly</code>, <code>dead tuples</code>, <code>blocked</code>, <code>configuration</code>
+</div>
+
 ## What gets detected
 
 | Event type | Meaning | Default severity |
@@ -72,8 +80,8 @@ tail -f logs/db_anomalies.jsonl | jq .
 ### Generate test events
 
 ```bash
-python scrpts/simulate_anomalies.py
-# wait ~60s for next scan cycle
+python scripts/demo_table_health.py
+# wait for next anomaly scan cycle (~5–60s)
 cat logs/db_anomalies.jsonl | tail -5
 ```
 

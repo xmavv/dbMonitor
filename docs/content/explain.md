@@ -3,6 +3,14 @@
 Available from **Top Queries** → **Analyze** button on any `SELECT` statement.  
 **API:** `POST /api/analyze`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_top_queries.py --fresh</code>, then click <b>Analyze</b> on the slow <code>demo.student</code> query<br>
+<b>Dashboard:</b> Top Queries → Analyze → Tree / With Indexes / Without Indexes<br>
+<b>Look for:</b> red/yellow tree nodes (high cost); Seq Scan in Tree; cost drop With vs Without Indexes<br>
+<b>Docs search:</b> <code>explain</code>, <code>analyze</code>, <code>sequential scan</code>, <code>index</code>
+</div>
+
 ## What this feature does
 
 Runs `EXPLAIN` on your query and presents three views:

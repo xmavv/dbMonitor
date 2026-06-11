@@ -71,7 +71,7 @@ Recommended exploration order:
 2. [Color Legend](/docs/color-legend) — learn to read badges
 3. [Top Queries](/docs/top-queries) + [Explain](/docs/explain)
 4. [Table Health](/docs/table-health) + [Index Usage](/docs/index-usage)
-5. Run `simulate_anomalies.py` and watch panels + log react
+5. Run `python scripts/demo_table_health.py` and watch panels + log react
 
 ---
 

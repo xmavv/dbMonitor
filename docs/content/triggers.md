@@ -4,6 +4,14 @@
 **API:** `GET /api/triggers`  
 **Source:** `pg_trigger`, `pg_proc`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_run_sql.py demo_triggers.sql</code> (during setup)<br>
+<b>Dashboard:</b> Triggers → ↺ Refresh<br>
+<b>Look for:</b> <code>demo_audit_trigger</code> → green <b>ENABLED</b>; <code>demo_legacy_sync_trigger</code> → red <b>DISABLED</b><br>
+<b>Docs search:</b> <code>trigger</code>, <code>DISABLED</code>, <code>ENABLED</code>, <code>slow writes</code>
+</div>
+
 ## What this panel does
 
 Lists all user-defined triggers: which table they fire on, enabled/disabled status, and full PL/pgSQL definition. Hidden triggers are a frequent cause of "slow writes nobody explained."
@@ -20,12 +28,12 @@ Lists all user-defined triggers: which table they fire on, enabled/disabled stat
 
 ## Demo triggers
 
-The sample schema (`scrpts/triggers_and_idx.sql`) includes:
+Demo triggers are created by `scripts/demo_triggers.sql` (via `python scripts/demo_run_sql.py demo_triggers.sql`):
 
 | Trigger | Table | Purpose |
 |---------|-------|---------|
-| `employee_audit_trigger` | `employee` | Logs INSERT/UPDATE/DELETE to `employee_audit` |
-| `student_program_trigger` | `student` | Updates `program.student_count` on enrollments |
+| `demo_audit_trigger` | `demo.employee` | ENABLED — logs changes to `demo.employee_audit` |
+| `demo_legacy_sync_trigger` | `demo.employee` | DISABLED — legacy noop sync |
 
 ## What to watch for
 

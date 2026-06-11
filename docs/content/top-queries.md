@@ -4,6 +4,14 @@
 **API:** `GET /api/stats`  
 **Source:** `pg_stat_statements`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_top_queries.py --fresh</code> (after setup + <code>demo_index_usage.sql</code>)<br>
+<b>Dashboard:</b> Top Queries → ↺ Refresh<br>
+<b>Look for:</b> <code>SELECT count(*) FROM demo.student WHERE search_token</code> at the top — high Total/Mean ms → click <b>Analyze</b><br>
+<b>Docs search:</b> <code>top queries</code>, <code>slow</code>, <code>analyze</code>, <code>sequential scan</code>
+</div>
+
 ## What this panel does
 
 Ranks SQL statements by **total execution time** — the product of how often a query runs and how long each run takes. This is the best starting point when the database feels slow but you don't know which queries to blame.

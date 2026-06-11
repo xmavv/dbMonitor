@@ -232,21 +232,24 @@ dbMonitor/
 ├── static/
 │   └── js/
 │       └── app.js              # Logika frontendu (fetch + renderowanie)
-└── scrpts/                     # Skrypty pomocnicze (SQL i Python)
-    ├── script.sql              # Schemat bazy + dane przykładowe
-    ├── triggers_and_idx.sql    # Triggery, funkcje i indeksy
-    ├── test_queries.sql        # Przykładowe zapytania testowe
-    ├── batch_data_inserter.py  # Masowe generowanie danych (10 000 rekordów)
-    ├── random_pracownik.py     # Generowanie losowych pracowników
-    ├── traffic_simulator.py    # Symulacja ruchu i blokad
-    └── message-2.py            # Symulacja blokad (wariant z db.get_db_url)
+└── scripts/                     # Skrypty demo (schema demo) + legacy
+    ├── README.md               # Przewodnik po skryptach demo
+    ├── demo_init.py            # Inicjalizacja dużej bazy w schemacie demo
+    ├── demo_triggers.sql       # Triggery ENABLED / DISABLED
+    ├── demo_index_usage.sql    # Indeksy używane, unused, duplicate
+    ├── demo_db_sizes.sql       # Tabele z dużym narzutem indeksów
+    ├── demo_extensions.sql     # Dodatkowe rozszerzenia (pg_trgm)
+    ├── demo_top_queries.py     # Wolne zapytania → Top Queries
+    ├── demo_table_health.py    # Bloat + cache → Table Health
+    ├── demo_locks.py           # Blokady → Lock Monitor
+    └── legacy/                 # Stare skrypty (public schema)
 ```
 
 ---
 
 ## Model danych
 
-Aplikacja monitoruje przykładową bazę o tematyce **uczelnianej**. Schemat (`scrpts/script.sql`) obejmuje:
+Aplikacja monitoruje przykładową bazę o tematyce **uczelnianej**. Historyczny schemat (`scripts/legacy/script.sql`) obejmuje:
 
 **Tabele:**
 
@@ -265,36 +268,41 @@ Aplikacja monitoruje przykładową bazę o tematyce **uczelnianej**. Schemat (`s
 **Widoki:** `student_program_v`, `employee_v`
 **Sekwencje:** `student_seq`, `sec_seq`
 
-**Triggery** (`scrpts/triggers_and_idx.sql`):
+**Triggery** (`scripts/legacy/triggers_and_idx.sql`):
 - `employee_audit_trigger` — loguje operacje INSERT/UPDATE/DELETE na tabeli `employee` do tabeli `employee_audit`.
 - `student_program_trigger` — automatycznie aktualizuje `student_count` w tabeli `program` przy dodaniu/usunięciu studenta.
 
-Skrypt `triggers_and_idx.sql` celowo tworzy też **indeksy nieużywane** (`idx_student_gender_unused`, `idx_phd_student_year_unused`) — do demonstracji modułu *Index Usage*.
+Skrypt `scripts/legacy/triggers_and_idx.sql` celowo tworzy też **indeksy nieużywane** (`idx_student_gender_unused`, `idx_phd_student_year_unused`) — do demonstracji modułu *Index Usage*.
 
 ---
 
 ## Skrypty pomocnicze
 
-Katalog `scrpts/` zawiera narzędzia do przygotowania i obciążenia bazy (do uruchomienia lokalnie; domyślnie łączą się z `localhost:5432`, baza `mydb`):
+## Skrypty demo
 
-| Skrypt | Przeznaczenie |
-|--------|---------------|
-| `script.sql` | Tworzy schemat bazy i wstawia dane przykładowe. Uruchom jako pierwszy. |
-| `triggers_and_idx.sql` | Dodaje triggery, funkcje PL/pgSQL oraz indeksy. |
-| `test_queries.sql` | Zestaw przykładowych zapytań SELECT/INSERT/UPDATE i indeksów. |
-| `batch_data_inserter.py` | Masowo generuje po 10 000 rekordów do każdej tabeli (do testów wydajności). |
-| `random_pracownik.py` | Wstawia partię losowych pracowników. |
-| `traffic_simulator.py` | Generuje ciągły ruch w tle oraz symuluje blokady (row-level i table-level) — przydatne do demonstracji modułów *Top Queries* i *Lock Monitor*. |
-| `message-2.py` | Wariant symulatora blokad korzystający z `get_db_url` z `db.py`. |
+Katalog `scripts/` zawiera zestaw **`demo_*`** do prezentacji PG Inspectora. Wszystko działa w schemacie **`demo`** (nie miesza się ze starym schematem `public`).
 
-**Typowa kolejność przygotowania środowiska testowego:**
+Pełna dokumentacja: [`scripts/README.md`](scripts/README.md) (instrukcja **per panel**: co odpalić, na co patrzeć, keyword w docs) oraz [/docs/scenarios](http://localhost:5001/docs/scenarios).
+
+**Typowa kolejność:**
 
 ```bash
-psql -h localhost -U postgres -d mydb -f scrpts/script.sql
-psql -h localhost -U postgres -d mydb -f scrpts/triggers_and_idx.sql
-python scrpts/batch_data_inserter.py     # opcjonalnie: dużo danych
-python scrpts/traffic_simulator.py       # opcjonalnie: ruch i blokady
+python scripts/demo_init.py
+python scripts/demo_run_sql.py demo_triggers.sql
+python scripts/demo_run_sql.py demo_index_usage.sql
+python scripts/demo_run_sql.py demo_db_sizes.sql
+python scripts/demo_run_sql.py demo_extensions.sql
 ```
+
+**Scenariusze na żądanie** (podczas demo poszczególnych paneli):
+
+```bash
+python scripts/demo_top_queries.py --fresh
+python scripts/demo_table_health.py
+python scripts/demo_locks.py --duration 45
+```
+
+Stare skrypty: `scripts/legacy/`.
 
 ---
 

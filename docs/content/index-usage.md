@@ -4,6 +4,14 @@
 **API:** `GET /api/indexes`  
 **Source:** `pg_stat_user_indexes`, duplicate detection via `pg_index`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_run_sql.py demo_index_usage.sql</code> (during setup)<br>
+<b>Dashboard:</b> Index Usage → ↺ Refresh<br>
+<b>Look for:</b> banner <b>Duplicate Indexes</b>; red <b>Unused</b> and yellow <b>Duplicate</b> badges on <code>demo.student</code> / <code>demo.size_data</code><br>
+<b>Docs search:</b> <code>unused</code>, <code>duplicate</code>, <code>DROP INDEX</code>
+</div>
+
 ## What this panel does
 
 Lists every index with scan counts and automatically highlights **unused** and **duplicate** indexes — common sources of wasted disk and slower writes.
@@ -67,4 +75,4 @@ If INSERT/UPDATE is slow:
 
 ## Sample schema note
 
-The demo database intentionally includes unused indexes (`idx_student_gender_unused`, `idx_phd_student_year_unused`) for training — see `scrpts/triggers_and_idx.sql`.
+The demo schema includes unused and duplicate indexes via `scripts/demo_index_usage.sql`.

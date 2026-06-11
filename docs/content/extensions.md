@@ -4,6 +4,14 @@
 **API:** `GET /api/extensions`  
 **Source:** `pg_extension`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_run_sql.py demo_extensions.sql</code> (during setup)<br>
+<b>Dashboard:</b> Extensions → ↺ Refresh<br>
+<b>Look for:</b> <code>pg_trgm</code> on the list (alongside <code>pg_stat_statements</code>)<br>
+<b>Docs search:</b> <code>extensions</code>, <code>CREATE EXTENSION</code>, <code>pg_stat_statements</code>
+</div>
+
 ## What this panel does
 
 Shows PostgreSQL **extensions** installed in the current database — name, version, and schema. Informational panel for verifying monitoring prerequisites.

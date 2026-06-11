@@ -181,7 +181,7 @@ PG Inspector continuously scans the database and writes events to `logs/db_anoma
 
 **Tune via env vars:** `DBMONITOR_LOG_INTERVAL_SECONDS`, `DBMONITOR_LONG_QUERY_SECONDS`, `DBMONITOR_LOCK_WAIT_SECONDS`, `DBMONITOR_LOG_MIN_SEVERITY`, and others — see [/docs/configuration](/docs/configuration).
 
-**Test:** `python scrpts/simulate_anomalies.py`
+**Test:** `python scripts/demo_table_health.py` (then check `logs/db_anomalies.jsonl`)
 
 See [/docs/anomaly-log](/docs/anomaly-log).
 
@@ -206,5 +206,5 @@ Full walkthroughs: [/docs/scenarios](/docs/scenarios).
 - **Can it break my database?** No data changes — reads stats only; EXPLAIN allows SELECT only.
 - **Data doesn't auto-refresh** — click ↺ Refresh (except background anomaly log).
 - **Empty panels** — normal on fresh DBs or when nothing is happening (e.g. no locks).
-- **Test with synthetic load** — scripts in `scrpts/` (see `README.md`).
+- **Test with synthetic load** — scripts in `scripts/` (see `README.md`).
 - **Technical details** — `README.md` and [/docs/api](/docs/api).

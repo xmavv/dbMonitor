@@ -50,3 +50,18 @@ PostgreSQL 15
 - [Configuration](/docs/configuration) — environment variables
 - [Color Legend](/docs/color-legend) — what red, yellow, and green mean
 - [Common Scenarios](/docs/scenarios) — step-by-step troubleshooting flows
+- **Demo guide** — `scripts/README.md` in the repo (per-panel run / check / docs search)
+
+## Live demo cheat sheet
+
+| Panel | Run | Docs search |
+|-------|-----|-------------|
+| Top Queries | `python scripts/demo_top_queries.py --fresh` | `slow`, `analyze` |
+| Table Health | `python scripts/demo_table_health.py` | `dead tuples`, `VACUUM` |
+| DB Sizes | setup (`demo_init` + `demo_db_sizes.sql`) | `index overhead` |
+| Index Usage | setup (`demo_index_usage.sql`) | `unused`, `duplicate` |
+| Lock Monitor | `python scripts/demo_locks.py --duration 45` | `blocked`, `lock` |
+| Triggers | setup (`demo_triggers.sql`) | `DISABLED`, `trigger` |
+| Extensions | setup (`demo_extensions.sql`) | `extensions` |
+
+Full details in the repository file **`scripts/README.md`**.

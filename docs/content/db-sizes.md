@@ -4,6 +4,14 @@
 **API:** `GET /api/sizes`  
 **Source:** `pg_stat_user_tables` (size functions)
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> setup only — <code>demo_init.py</code> + <code>python scripts/demo_run_sql.py demo_db_sizes.sql</code><br>
+<b>Dashboard:</b> DB Sizes → ↺ Refresh<br>
+<b>Look for:</b> <code>demo.size_data</code> — purple (indexes) bar larger than cyan (data); large <code>demo.student</code><br>
+<b>Docs search:</b> <code>DB sizes</code>, <code>index overhead</code>, <code>disk</code>
+</div>
+
 ## What this panel does
 
 Visualizes **disk footprint** per table: how much space is raw heap data vs indexes. Helps answer "why is my database so big?" and "are indexes eating more space than data?"

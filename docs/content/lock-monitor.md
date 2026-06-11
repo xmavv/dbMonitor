@@ -4,6 +4,14 @@
 **API:** `GET /api/locks`  
 **Source:** `pg_locks`, `pg_stat_activity`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_locks.py --duration 45</code><br>
+<b>Dashboard:</b> Lock Monitor → ↺ Refresh <em>while the script is running</em><br>
+<b>Look for:</b> red lock cards (blocker → blocked), growing <b>Wait time</b>; yellow duration in Active Queries<br>
+<b>Docs search:</b> <code>lock</code>, <code>blocked</code>, <code>idle in transaction</code>, <code>pg_cancel_backend</code>
+</div>
+
 ## What this panel does
 
 Surfaces **blocking lock chains** (who blocks whom) and **long-running active queries**. This is the first panel to open when users report freezes, timeouts, or "database hung."
@@ -82,9 +90,7 @@ FROM pg_stat_activity WHERE pid = 8421;
 ## Test with simulator
 
 ```bash
-python scrpts/traffic_simulator.py
-# or
-python scrpts/simulate_anomalies.py
+python scripts/demo_locks.py --duration 45
 ```
 
 Refresh Lock Monitor to see simulated blocking chains.

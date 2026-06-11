@@ -4,6 +4,14 @@
 **API:** `GET /api/table-health`  
 **Source:** `pg_stat_user_tables`, `pg_statio_user_tables`
 
+<div class="doc-callout doc-callout-info">
+<strong>Live demo</strong><br>
+<b>Run:</b> <code>python scripts/demo_table_health.py</code> (after setup + <code>demo_db_sizes.sql</code>)<br>
+<b>Dashboard:</b> Table Health → ↺ Refresh<br>
+<b>Look for:</b> <code>demo.bloat_table</code> — red <b>Dead %</b> badge (~33%); summary card <b>Bloated Tables</b> &gt; 0<br>
+<b>Docs search:</b> <code>dead tuples</code>, <code>VACUUM</code>, <code>bloat</code>, <code>cache hit</code>
+</div>
+
 ## What this panel does
 
 Shows the **health snapshot** of every user table: tuple bloat, scan patterns, write activity, maintenance history, and buffer cache effectiveness per table.

@@ -71,14 +71,17 @@ On first start the app runs `setup_database`: creates `pg_stat_statements`, a re
 
 ## Load sample data (optional)
 
-Scripts in `scrpts/` populate a university-themed schema and simulate load:
+Scripts in `scripts/` populate the **`demo`** schema for live presentations:
 
 ```bash
-psql -h localhost -U postgres -d mydb -f scrpts/script.sql
-psql -h localhost -U postgres -d mydb -f scrpts/triggers_and_idx.sql
-python scrpts/batch_data_inserter.py      # optional: large dataset
-python scrpts/traffic_simulator.py        # optional: queries + locks
-python scrpts/simulate_anomalies.py       # optional: triggers anomaly log
+python scripts/demo_init.py
+python scripts/demo_run_sql.py demo_triggers.sql
+python scripts/demo_run_sql.py demo_index_usage.sql
+python scripts/demo_run_sql.py demo_db_sizes.sql
+python scripts/demo_run_sql.py demo_extensions.sql
+python scripts/demo_top_queries.py
+python scripts/demo_table_health.py
+python scripts/demo_locks.py
 ```
 
-See `README.md` for full script descriptions.
+See **`scripts/README.md`** in the repository for the full per-panel demo guide (run → dashboard → docs keywords).
