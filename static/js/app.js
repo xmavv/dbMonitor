@@ -11,7 +11,7 @@ function showView(name) {
     document.getElementById('page-title').textContent = {
         queries: 'Top Queries', tables: 'Table Health',
         sizes: 'Database Sizes', indexes: 'Index Usage', locks: 'Lock Monitor',
-        triggers: 'Triggers', cache: 'Buffer Cache', extensions: 'Extensions'
+        anomalies: 'Anomaly Log', triggers: 'Triggers', cache: 'Buffer Cache', extensions: 'Extensions'
     }[name];
     currentView = name;
     if (!loaded[name]) loadView(name);
@@ -24,6 +24,7 @@ function loadView(name) {
     const loaders = {
         queries: loadQueries, tables: loadTables,
         sizes: loadSizes, indexes: loadIndexes, locks: loadLocks,
+        anomalies: loadAnomalies,
         triggers: loadTriggers, cache: loadCache, extensions: loadExtensions
     };
     loaders[name]?.();
@@ -164,27 +165,48 @@ function switchPlanTab(tab, noRender=false) {
     if (!noRender && planData) renderPlanTab(tab);
 }
 
+function planNoticeHtml() {
+    if (!planData || planData.error) return '';
+    const withTxt = (planData.with_index || []).join('\n').trim();
+    const withoutTxt = (planData.without_index || []).join('\n').trim();
+    const identical = withTxt === withoutTxt;
+    if (identical) {
+        return `<div class="plan-notice plan-notice-warn">
+<strong>With Indexes and Without Indexes are identical.</strong>
+The planner already uses a <em>Sequential Scan</em> — there is no usable index on the filtered column
+(e.g. <code>search_token</code>). Disabling index scans changes nothing.
+Compare with a query on an indexed column (e.g. <code>email</code>) to see the difference.
+</div>`;
+    }
+    return `<div class="plan-notice plan-notice-info">
+<strong>With Indexes</strong> — normal planner (may use Index Scan / Bitmap Scan).
+<strong>Without Indexes</strong> — index scans disabled; shows cost if indexes were unavailable.
+Look for Seq Scan vs Index Scan and compare <code>cost=…</code> / row estimates.
+</div>`;
+}
+
 function renderPlanTab(tab) {
     const el = $('plan-content');
     if (!planData) return;
     if (planData.error) {
         el.innerHTML = `<pre style="color:var(--danger)">${escHtml(planData.error)}</pre>`; return;
     }
+    const notice = planNoticeHtml();
     if (tab === 'tree') {
         if (planData.plan_json) {
             const plan = planData.plan_json[0] || planData.plan_json;
-            el.innerHTML = '';
+            el.innerHTML = notice;
             el.appendChild(renderTreeNode(plan['Plan'], 0));
         } else {
-            el.innerHTML = '<pre class="plan-text">' + escHtml((planData.with_index||[]).join('\n')) + '</pre>';
+            el.innerHTML = notice + '<pre class="plan-text">' + escHtml((planData.with_index||[]).join('\n')) + '</pre>';
         }
     } else if (tab === 'with') {
-        el.innerHTML = '<pre class="plan-text">' + escHtml((planData.with_index||[]).join('\n')) + '</pre>';
+        el.innerHTML = notice + '<pre class="plan-text">' + escHtml((planData.with_index||[]).join('\n')) + '</pre>';
     } else {
         const txt = planData.without_index_error
             ? planData.without_index_error
             : (planData.without_index||[]).join('\n');
-        el.innerHTML = '<pre class="plan-text">' + escHtml(txt) + '</pre>';
+        el.innerHTML = notice + '<pre class="plan-text">' + escHtml(txt) + '</pre>';
     }
 }
 
@@ -432,8 +454,49 @@ async function loadLocks() {
     el.innerHTML = html;
 }
 
+async function loadAnomalies() {
+    const el = $('anomalies-content');
+    el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading…</div>';
+    const res = await fetch('/api/anomalies?limit=200');
+    const data = await res.json();
+    if (data.error) { el.innerHTML = `<pre style="color:var(--danger)">${data.error}</pre>`; return; }
+
+    const entries = data.entries || [];
+    let html = `<div class="card">
+    <div class="card-header">Anomaly Log <span style="font-weight:400;color:var(--text3);margin-left:8px">${escHtml(data.path || '')}</span></div>`;
+
+    if (!entries.length) {
+        html += `<div class="card-body"><div class="empty-state">No events logged yet. Background monitor writes to this file every few seconds.</div></div></div>`;
+        el.innerHTML = html;
+        return;
+    }
+
+    html += `<div class="card-body" style="padding:0">`;
+    entries.forEach(e => {
+        const sev = (e.severity || 'info').toLowerCase();
+        const sevClass = `severity-${sev}`;
+        const badgeCls = sev === 'critical' || sev === 'error' ? 'badge-danger'
+            : sev === 'warning' ? 'badge-warn'
+            : sev === 'info' ? 'badge-info' : 'badge-ok';
+        const details = e.details && Object.keys(e.details).length
+            ? escHtml(JSON.stringify(e.details, null, 2)) : '';
+        html += `<div class="anomaly-item">
+      <div class="anomaly-meta">
+        <span class="anomaly-time">${escHtml(e.timestamp || '—')}</span>
+        <span class="badge ${badgeCls}">${escHtml(sev.toUpperCase())}</span>
+        <span class="anomaly-type">${escHtml(e.type || 'event')}</span>
+      </div>
+      <div class="anomaly-message">${escHtml(e.message || '')}</div>
+      ${details ? `<div class="anomaly-details">${details}</div>` : ''}
+    </div>`;
+    });
+    html += `</div><div class="card-body" style="border-top:1px solid var(--border);font-size:11px;color:var(--text3)">
+    Showing ${entries.length} newest of ${data.total || entries.length} — auto-logged in background; click ↺ Refresh to update.
+    </div></div>`;
+    el.innerHTML = html;
+}
+
 async function loadCache() {
-    const el = $('cache-content');
     el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading…</div>';
     const res = await fetch('/api/cache');
     const data = await res.json();

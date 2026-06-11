@@ -101,13 +101,13 @@ def main():
         ],
     )
 
-    from demo_db import get_db_config
-
     conn = connect()
     require_schema(conn)
     conn.close()
 
     cfg = get_db_config()
+
+    if args.mode in ("row", "both"):
         print("\n--- Scenario 1: row-level lock ---")
         t_block = threading.Thread(target=hold_row_lock, args=(cfg, args.duration))
         t_victim = threading.Thread(target=victim_row_lock, args=(cfg, 2))

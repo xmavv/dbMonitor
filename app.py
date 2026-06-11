@@ -289,6 +289,48 @@ def api_extensions():
         return _api({"error": str(e)})
 
 
+def _anomaly_log_path():
+    return os.getenv("DBMONITOR_ANOMALY_LOG_FILE", "logs/db_anomalies.jsonl")
+
+
+def load_anomaly_log(limit=200):
+    log_path = _anomaly_log_path()
+    if not os.path.isfile(log_path):
+        return {"path": log_path, "entries": [], "total": 0}
+
+    entries = []
+    with open(log_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    total = len(entries)
+    if limit and len(entries) > limit:
+        entries = entries[-limit:]
+    entries.reverse()
+    return {"path": log_path, "entries": entries, "total": total}
+
+
+@app.route("/api/anomalies")
+def api_anomalies():
+    try:
+        limit = _int_env("DBMONITOR_ANOMALY_LOG_READ_LIMIT", 200)
+        query_limit = request.args.get("limit")
+        if query_limit is not None:
+            try:
+                limit = max(1, min(1000, int(query_limit)))
+            except (TypeError, ValueError):
+                pass
+        return _api(load_anomaly_log(limit))
+    except Exception as e:
+        return _api({"error": str(e)})
+
+
 @app.route("/api/cache")
 def api_cache():
     try:

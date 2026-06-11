@@ -198,6 +198,7 @@ Wszystkie endpointy zwracają dane w formacie **JSON**. W przypadku błędu zwra
 | `GET` | `/api/sizes` | Rozmiary tabel i indeksów | `pg_stat_user_tables` |
 | `GET` | `/api/locks` | Blokady i aktywne zapytania | `pg_locks`, `pg_stat_activity` |
 | `POST` | `/api/analyze` | Plan wykonania zapytania (`EXPLAIN`) | — |
+| `GET` | `/api/anomalies` | Dziennik anomalii (JSONL) | plik `logs/db_anomalies.jsonl` |
 | `GET` | `/api/triggers` | Lista wyzwalaczy | `pg_trigger` |
 | `GET` | `/api/extensions` | Zainstalowane rozszerzenia | `pg_extension` |
 

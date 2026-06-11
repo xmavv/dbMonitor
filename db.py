@@ -531,4 +531,7 @@ def explain_query(conn, query):
                 conn.rollback()
 
     cur.close()
+    with_lines = results.get("with_index") or []
+    without_lines = results.get("without_index") or []
+    results["indexes_matter"] = with_lines != without_lines
     return results

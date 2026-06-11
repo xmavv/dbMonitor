@@ -150,13 +150,13 @@ Tryby: `--mode row`, `idle`, `both` (domyślnie oba scenariusze).
 
 ---
 
-### Anomaly Log (tło — nie ma panelu)
+### Anomaly Log (panel + plik w tle)
 
 | | |
 |---|---|
-| **Odpal** | `demo_table_health.py` i/lub `demo_locks.py` podczas działającej aplikacji |
-| **Gdzie patrzeć** | Plik **`logs/db_anomalies.jsonl`** (w kontenerze: `/app/logs/…`) |
-| **Na co patrzeć** | JSON: `"type": "dead_tuples"`, `"duplicate_indexes"`, `"blocked_query"`, `"unused_large_index"` |
+| **Odpal** | `python scripts/demo_table_health.py` i/lub `python scripts/demo_locks.py --duration 45` |
+| **Panel** | Runtime → **Anomaly Log** → **↺ Refresh** |
+| **Na co patrzeć** | Lista zdarzeń: timestamp, severity (badge), type, message, szczegóły JSON |
 | **Docs — wpisz** | `anomaly`, `dead tuples`, `blocked`, `configuration` |
 
 ---

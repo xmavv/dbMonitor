@@ -7,7 +7,7 @@ PG Inspector runs a **background monitor** from app startup. It periodically sca
 <div class="doc-callout doc-callout-info">
 <strong>Live demo</strong><br>
 <b>Run:</b> <code>python scripts/demo_table_health.py</code> and/or <code>python scripts/demo_locks.py --duration 45</code> while the app is running<br>
-<b>Check:</b> <code>logs/db_anomalies.jsonl</code> (not a dashboard panel)<br>
+<b>Dashboard:</b> Runtime → <b>Anomaly Log</b> → ↺ Refresh (or read <code>logs/db_anomalies.jsonl</code>)<br>
 <b>Look for:</b> JSON entries <code>dead_tuples</code>, <code>duplicate_indexes</code>, <code>blocked_query</code>, <code>unused_large_index</code><br>
 <b>Docs search:</b> <code>anomaly</code>, <code>dead tuples</code>, <code>blocked</code>, <code>configuration</code>
 </div>

@@ -25,6 +25,24 @@ Runs `EXPLAIN` on your query and presents three views:
 Only <strong>SELECT</strong> queries are accepted — prevents accidental data modification.
 </div>
 
+## With Indexes vs Without Indexes
+
+| Tab | Meaning |
+|-----|---------|
+| **With Indexes** | Normal planner — may choose Index Scan, Bitmap Scan, or Seq Scan |
+| **Without Indexes** | Index/bitmap scans disabled — “what if indexes could not be used?” |
+
+**How to read the text:**
+
+- **`Seq Scan on student`** — full table read (slow on large tables).
+- **`Index Scan using idx_…`** — uses an index to find rows.
+- **`cost=0.00..12345.67`** — planner cost estimate (relative, not ms).
+- **`rows=500000`** — estimated rows at that step.
+
+### Identical With / Without plans
+
+If both tabs match (often all **Seq Scan**), **no index applies** to the filter column — e.g. demo slow query on `search_token` (no index). Disabling index scans changes nothing. The Tree View can still be red (expensive seq scan). Compare **Analyze** on `WHERE email = …` to see Index Scan vs Seq Scan.
+
 ## Tree node colors
 
 <div class="doc-mock">

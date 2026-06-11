@@ -436,6 +436,65 @@
             font-size: 13px;
         }
 
+        .plan-notice {
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.5;
+            border: 1px solid var(--border2);
+            background: var(--surface2);
+            color: var(--text2);
+        }
+        .plan-notice-warn { border-left: 3px solid var(--warn); }
+        .plan-notice-info { border-left: 3px solid var(--accent); }
+
+        .anomaly-item {
+            border-bottom: 1px solid var(--border);
+            padding: 14px 18px;
+        }
+        .anomaly-item:last-child { border-bottom: none; }
+        .anomaly-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .anomaly-time {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text3);
+        }
+        .anomaly-type {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+        }
+        .anomaly-message {
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        .anomaly-details {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text2);
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 120px;
+            overflow-y: auto;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px 10px;
+        }
+        .severity-critical, .severity-error { color: var(--danger); }
+        .severity-warning { color: var(--warn); }
+        .severity-info { color: var(--accent); }
+        .severity-debug { color: var(--text3); }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -470,6 +529,9 @@
     <div class="nav-section">Runtime</div>
     <div class="nav-item" onclick="showView('locks')">
         Lock Monitor
+    </div>
+    <div class="nav-item" onclick="showView('anomalies')">
+        Anomaly Log
     </div>
     <div class="nav-section">Trgrs</div>
     <div class="nav-item" onclick="showView('triggers')">
@@ -512,6 +574,10 @@
 
         <div id="view-locks" class="view">
             <div id="locks-content"><div class="loader"><div class="spinner"></div>Loading locks…</div></div>
+        </div>
+
+        <div id="view-anomalies" class="view">
+            <div id="anomalies-content"><div class="loader"><div class="spinner"></div>Loading anomaly log…</div></div>
         </div>
 
         <div id="view-triggers" class="view">

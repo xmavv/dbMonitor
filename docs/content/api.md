@@ -13,6 +13,7 @@ All endpoints return **JSON**. On error: `{"error": "message"}`.
 | `GET` | `/api/sizes` | Table and index sizes | `pg_stat_user_tables` |
 | `GET` | `/api/indexes` | Index usage + duplicates | `pg_stat_user_indexes`, `pg_index` |
 | `GET` | `/api/locks` | Blocking locks + active queries | `pg_locks`, `pg_stat_activity` |
+| `GET` | `/api/anomalies` | Background anomaly log entries | `logs/db_anomalies.jsonl` |
 | `GET` | `/api/triggers` | Trigger list | `pg_trigger` |
 | `GET` | `/api/extensions` | Installed extensions | `pg_extension` |
 | `POST` | `/api/analyze` | Query execution plan (`EXPLAIN`) | — |
